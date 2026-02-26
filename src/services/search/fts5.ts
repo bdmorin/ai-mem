@@ -47,10 +47,14 @@ export function sanitizeFts5Query(query: string): string {
     // Extract word (alphanumeric + asterisk for prefix)
     let word = '';
     while (i < query.length && !/\s/.test(query[i])) {
-      if (/[a-zA-Z0-9_*]/.test(query[i])) {
-        word += query[i];
+      const ch = query[i];
+      if (/[a-zA-Z0-9_*]/.test(ch)) {
+        word += ch;
+      } else if (word) {
+        // Punctuation acts as a word boundary — flush current word
+        tokens.push(word);
+        word = '';
       }
-      // Strip all other characters (dots, colons, brackets, etc.)
       i++;
     }
 
