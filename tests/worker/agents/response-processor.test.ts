@@ -25,6 +25,12 @@ mock.module('../../../src/services/domain/ModeManager.js', () => ({
   },
 }));
 
+// Mock embeddings module to avoid loading the transformer model in tests
+mock.module('../../../src/services/search/embeddings.js', () => ({
+  embed: () => Promise.resolve(new Float32Array(384)),
+  serializeEmbedding: (emb: Float32Array) => Buffer.from(emb.buffer, emb.byteOffset, emb.byteLength),
+}));
+
 // Import after mocks
 import { processAgentResponse } from '../../../src/services/worker/agents/ResponseProcessor.js';
 import type { WorkerRef, StorageResult } from '../../../src/services/worker/agents/types.js';
@@ -38,8 +44,7 @@ let loggerSpies: ReturnType<typeof spyOn>[] = [];
 describe('ResponseProcessor', () => {
   // Mocks
   let mockStoreObservations: ReturnType<typeof mock>;
-  let mockChromaSyncObservation: ReturnType<typeof mock>;
-  let mockChromaSyncSummary: ReturnType<typeof mock>;
+  let mockDbPrepareRun: ReturnType<typeof mock>;
   let mockBroadcast: ReturnType<typeof mock>;
   let mockBroadcastProcessingStatus: ReturnType<typeof mock>;
   let mockDbManager: DatabaseManager;
@@ -62,18 +67,16 @@ describe('ResponseProcessor', () => {
       createdAtEpoch: 1700000000000,
     } as StorageResult));
 
-    mockChromaSyncObservation = mock(() => Promise.resolve());
-    mockChromaSyncSummary = mock(() => Promise.resolve());
+    mockDbPrepareRun = mock(() => {});
 
     mockDbManager = {
       getSessionStore: () => ({
         storeObservations: mockStoreObservations,
         ensureMemorySessionIdRegistered: mock(() => {}),  // FK fix (Issue #846)
         getSessionById: mock(() => ({ memory_session_id: 'memory-session-456' })),  // FK fix (Issue #846)
-      }),
-      getChromaSync: () => ({
-        syncObservation: mockChromaSyncObservation,
-        syncSummary: mockChromaSyncSummary,
+        db: {
+          prepare: () => ({ run: mockDbPrepareRun }),
+        },
       }),
     } as unknown as DatabaseManager;
 
@@ -271,6 +274,9 @@ describe('ResponseProcessor', () => {
         storeObservations: mockStoreObservations,
         ensureMemorySessionIdRegistered: mock(() => {}),
         getSessionById: mock(() => ({ memory_session_id: 'memory-session-456' })),
+        db: {
+          prepare: () => ({ run: mockDbPrepareRun }),
+        },
       });
 
       await processAgentResponse(
@@ -371,6 +377,9 @@ describe('ResponseProcessor', () => {
         storeObservations: mockStoreObservations,
         ensureMemorySessionIdRegistered: mock(() => {}),
         getSessionById: mock(() => ({ memory_session_id: 'memory-session-456' })),
+        db: {
+          prepare: () => ({ run: mockDbPrepareRun }),
+        },
       });
 
       await processAgentResponse(
@@ -452,6 +461,9 @@ describe('ResponseProcessor', () => {
         storeObservations: mockStoreObservations,
         ensureMemorySessionIdRegistered: mock(() => {}),
         getSessionById: mock(() => ({ memory_session_id: 'memory-session-456' })),
+        db: {
+          prepare: () => ({ run: mockDbPrepareRun }),
+        },
       });
 
       await processAgentResponse(
@@ -485,6 +497,9 @@ describe('ResponseProcessor', () => {
         storeObservations: mockStoreObservations,
         ensureMemorySessionIdRegistered: mock(() => {}),
         getSessionById: mock(() => ({ memory_session_id: 'memory-session-456' })),
+        db: {
+          prepare: () => ({ run: mockDbPrepareRun }),
+        },
       });
 
       await processAgentResponse(
@@ -529,6 +544,9 @@ describe('ResponseProcessor', () => {
         storeObservations: mockStoreObservations,
         ensureMemorySessionIdRegistered: mock(() => {}),
         getSessionById: mock(() => ({ memory_session_id: 'memory-session-456' })),
+        db: {
+          prepare: () => ({ run: mockDbPrepareRun }),
+        },
       });
 
       await processAgentResponse(
@@ -567,6 +585,9 @@ describe('ResponseProcessor', () => {
         storeObservations: mockStoreObservations,
         ensureMemorySessionIdRegistered: mock(() => {}),
         getSessionById: mock(() => ({ memory_session_id: 'memory-session-456' })),
+        db: {
+          prepare: () => ({ run: mockDbPrepareRun }),
+        },
       });
 
       await processAgentResponse(
@@ -609,6 +630,9 @@ describe('ResponseProcessor', () => {
         storeObservations: mockStoreObservations,
         ensureMemorySessionIdRegistered: mock(() => {}),
         getSessionById: mock(() => ({ memory_session_id: 'memory-session-456' })),
+        db: {
+          prepare: () => ({ run: mockDbPrepareRun }),
+        },
       });
 
       await processAgentResponse(
