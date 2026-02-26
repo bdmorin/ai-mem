@@ -74,8 +74,9 @@ async function searchHybrid(db: Database, options: SearchOptions): Promise<Searc
     if (tables.length > 0) {
       vectorResults = await searchVector(db, expandedOptions);
     }
-  } catch {
+  } catch (err) {
     // Vector search unavailable — degrade to FTS5-only
+    process.stderr.write(`[hybrid] vector search failed, degrading to FTS5: ${err}\n`);
   }
 
   if (vectorResults.length === 0) {
