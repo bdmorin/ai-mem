@@ -15,41 +15,7 @@ export const SEARCH_CONSTANTS = {
   RECENCY_WINDOW_DAYS: 90,
   RECENCY_WINDOW_MS: 90 * 24 * 60 * 60 * 1000,
   DEFAULT_LIMIT: 20,
-  CHROMA_BATCH_SIZE: 100
 } as const;
-
-/**
- * Document types stored in Chroma
- */
-export type ChromaDocType = 'observation' | 'session_summary' | 'user_prompt';
-
-/**
- * Chroma query result with typed metadata
- */
-export interface ChromaQueryResult {
-  ids: number[];
-  distances: number[];
-  metadatas: ChromaMetadata[];
-}
-
-/**
- * Metadata stored with each Chroma document
- */
-export interface ChromaMetadata {
-  sqlite_id: number;
-  doc_type: ChromaDocType;
-  memory_session_id: string;
-  project: string;
-  created_at_epoch: number;
-  type?: string;
-  title?: string;
-  subtitle?: string;
-  concepts?: string;
-  files_read?: string;
-  files_modified?: string;
-  field_type?: string;
-  prompt_number?: number;
-}
 
 /**
  * Unified search result type for all document types
@@ -84,7 +50,7 @@ export interface ExtendedSearchOptions extends SearchOptions {
 /**
  * Search strategy selection hint
  */
-export type SearchStrategyHint = 'chroma' | 'sqlite' | 'hybrid' | 'auto';
+export type SearchStrategyHint = 'sqlite' | 'hybrid' | 'auto';
 
 /**
  * Options passed to search strategies
@@ -101,8 +67,6 @@ export interface StrategySearchOptions extends ExtendedSearchOptions {
  */
 export interface StrategySearchResult {
   results: SearchResults;
-  /** Whether Chroma was used successfully */
-  usedChroma: boolean;
   /** Whether fallback was triggered */
   fellBack: boolean;
   /** Strategy that produced the results */

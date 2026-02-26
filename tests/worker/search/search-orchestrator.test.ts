@@ -149,7 +149,7 @@ describe('SearchOrchestrator', () => {
         });
 
         expect(result.strategy).toBe('sqlite');
-        expect(result.usedChroma).toBe(false);
+        expect(result.fellBack).toBe(false);
         expect(mockSessionSearch.searchObservations).toHaveBeenCalled();
       });
 
@@ -159,7 +159,7 @@ describe('SearchOrchestrator', () => {
         });
 
         expect(result.strategy).toBe('sqlite');
-        expect(result.usedChroma).toBe(false);
+        expect(result.fellBack).toBe(false);
         expect(mockSearchResults).toHaveBeenCalled();
         expect(result.results.observations.length).toBeGreaterThanOrEqual(1);
       });
@@ -172,7 +172,6 @@ describe('SearchOrchestrator', () => {
         });
 
         expect(result.fellBack).toBe(true);
-        expect(result.usedChroma).toBe(false);
       });
 
       it('should normalize comma-separated concepts', async () => {
@@ -226,7 +225,7 @@ describe('SearchOrchestrator', () => {
           limit: 10
         });
 
-        expect(result.usedChroma).toBe(false);
+        expect(result.fellBack).toBe(false);
         expect(result.strategy).toBe('sqlite');
         expect(mockSessionSearch.findByConcept).toHaveBeenCalled();
       });
@@ -242,7 +241,7 @@ describe('SearchOrchestrator', () => {
       it('should use SQLite strategy', async () => {
         const result = await orchestrator.findByType('decision', {});
 
-        expect(result.usedChroma).toBe(false);
+        expect(result.fellBack).toBe(false);
         expect(result.strategy).toBe('sqlite');
         expect(mockSessionSearch.findByType).toHaveBeenCalled();
       });
@@ -262,10 +261,11 @@ describe('SearchOrchestrator', () => {
         expect(mockSessionSearch.findByFile).toHaveBeenCalled();
       });
 
-      it('should include usedChroma=false in result', async () => {
+      it('should return observations and sessions without extra metadata', async () => {
         const result = await orchestrator.findByFile('/path/to/file.ts', {});
 
-        expect(result.usedChroma).toBe(false);
+        expect(result).toHaveProperty('observations');
+        expect(result).toHaveProperty('sessions');
       });
     });
 
@@ -295,7 +295,7 @@ describe('SearchOrchestrator', () => {
         expect(formatted).toContain('No results found');
       });
 
-      it('should indicate failure when chromaFailed is true', () => {
+      it('should indicate failure when searchFailed is true', () => {
         const results = {
           observations: [],
           sessions: [],
@@ -321,7 +321,7 @@ describe('SearchOrchestrator', () => {
         });
 
         expect(result.results.observations).toHaveLength(0);
-        expect(result.usedChroma).toBe(false);
+        expect(result.fellBack).toBe(false);
       });
 
       it('should still work for filter-only queries', async () => {
@@ -338,7 +338,7 @@ describe('SearchOrchestrator', () => {
       it('should use SQLite strategy', async () => {
         const result = await orchestrator.findByConcept('test-concept', {});
 
-        expect(result.usedChroma).toBe(false);
+        expect(result.fellBack).toBe(false);
         expect(result.strategy).toBe('sqlite');
         expect(mockSessionSearch.findByConcept).toHaveBeenCalled();
       });
@@ -348,7 +348,7 @@ describe('SearchOrchestrator', () => {
       it('should use SQLite strategy', async () => {
         const result = await orchestrator.findByType('decision', {});
 
-        expect(result.usedChroma).toBe(false);
+        expect(result.fellBack).toBe(false);
         expect(result.strategy).toBe('sqlite');
       });
     });
@@ -357,7 +357,8 @@ describe('SearchOrchestrator', () => {
       it('should use SQLite strategy', async () => {
         const result = await orchestrator.findByFile('/path/to/file.ts', {});
 
-        expect(result.usedChroma).toBe(false);
+        expect(result).toHaveProperty('observations');
+        expect(result).toHaveProperty('sessions');
         expect(mockSessionSearch.findByFile).toHaveBeenCalled();
       });
     });

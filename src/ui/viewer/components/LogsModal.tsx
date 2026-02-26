@@ -32,7 +32,7 @@ const LOG_COMPONENTS: { key: LogComponent; label: string; icon: string; color: s
   { key: 'SYSTEM', label: 'System', icon: '💻', color: '#8b949e' },
   { key: 'HTTP', label: 'HTTP', icon: '🌐', color: '#39d353' },
   { key: 'SESSION', label: 'Session', icon: '📋', color: '#db61a2' },
-  { key: 'CHROMA', label: 'Chroma', icon: '🔮', color: '#a855f7' },
+  { key: 'SEARCH', label: 'Search', icon: '🔍', color: '#a855f7' },
 ];
 
 // Parse a single log line into structured data

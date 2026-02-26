@@ -458,7 +458,7 @@ export class SessionStore {
         END;
       `);
     } catch (ftsError) {
-      logger.warn('DB', 'FTS5 not available — user_prompts_fts skipped (search uses ChromaDB)', {}, ftsError as Error);
+      logger.warn('DB', 'FTS5 not available — user_prompts_fts skipped', {}, ftsError as Error);
     }
 
     // Commit transaction
@@ -1091,7 +1091,7 @@ export class SessionStore {
 
   /**
    * Get latest user prompt with session info for a Claude session
-   * Used for syncing prompts to Chroma during session initialization
+   * Get latest user prompt with session info for a Claude session
    */
   getLatestUserPrompt(contentSessionId: string): {
     id: number;
@@ -1863,7 +1863,7 @@ export class SessionStore {
   // Marking all active sessions as 'failed' on startup destroys the user's current work.
 
   /**
-   * Get session summaries by IDs (for hybrid Chroma search)
+   * Get session summaries by IDs
    * Returns summaries in specified temporal order
    */
   getSessionSummariesByIds(
@@ -1895,7 +1895,7 @@ export class SessionStore {
   }
 
   /**
-   * Get user prompts by IDs (for hybrid Chroma search)
+   * Get user prompts by IDs
    * Returns prompts in specified temporal order
    */
   getUserPromptsByIds(

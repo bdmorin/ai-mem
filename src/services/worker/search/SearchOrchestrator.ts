@@ -118,7 +118,6 @@ export class SearchOrchestrator {
 
         return {
           results: { observations, sessions: [], prompts: [] },
-          usedChroma: false,
           fellBack: false,
           strategy: 'sqlite'
         };
@@ -140,7 +139,6 @@ export class SearchOrchestrator {
     logger.debug('SEARCH', 'Orchestrator: No database available', {});
     return {
       results: { observations: [], sessions: [], prompts: [] },
-      usedChroma: false,
       fellBack: false,
       strategy: 'sqlite'
     };
@@ -155,7 +153,6 @@ export class SearchOrchestrator {
     const results = this.sqliteStrategy.findByConcept(concept, options);
     return {
       results: { observations: results, sessions: [], prompts: [] },
-      usedChroma: false,
       fellBack: false,
       strategy: 'sqlite'
     };
@@ -170,7 +167,6 @@ export class SearchOrchestrator {
     const results = this.sqliteStrategy.findByType(type, options);
     return {
       results: { observations: results, sessions: [], prompts: [] },
-      usedChroma: false,
       fellBack: false,
       strategy: 'sqlite'
     };
@@ -182,12 +178,10 @@ export class SearchOrchestrator {
   async findByFile(filePath: string, args: any): Promise<{
     observations: ObservationSearchResult[];
     sessions: any[];
-    usedChroma: boolean;
   }> {
     const options = this.normalizeParams(args);
 
-    const results = this.sqliteStrategy.findByFile(filePath, options);
-    return { ...results, usedChroma: false };
+    return this.sqliteStrategy.findByFile(filePath, options);
   }
 
   /**
@@ -225,9 +219,9 @@ export class SearchOrchestrator {
   formatSearchResults(
     results: SearchResults,
     query: string,
-    chromaFailed: boolean = false
+    searchFailed: boolean = false
   ): string {
-    return this.resultFormatter.formatSearchResults(results, query, chromaFailed);
+    return this.resultFormatter.formatSearchResults(results, query, searchFailed);
   }
 
   /**

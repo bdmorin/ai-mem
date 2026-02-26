@@ -11,7 +11,7 @@ Hook (plugin/scripts/*-hook.js)
   → HTTP Request to Worker (localhost:37777)
     → Route Handler (http/routes/*.ts)
       → MCP Server Tool (for search) OR Service Layer (for session/data)
-        → Database (SQLite3 + Chroma vector DB)
+        → Database (SQLite3)
 ```
 
 ## Directory Structure

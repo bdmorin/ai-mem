@@ -198,7 +198,7 @@ describe('ResultFormatter', () => {
       expect(formatted).toContain('| Title |');
     });
 
-    it('should indicate Chroma failure when chromaFailed is true', () => {
+    it('should indicate search failure when searchFailed is true', () => {
       const results: SearchResults = {
         observations: [],
         sessions: [],
