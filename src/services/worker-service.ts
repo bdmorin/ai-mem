@@ -98,9 +98,7 @@ import { Server } from './server/Server.js';
 import { DatabaseManager } from './worker/DatabaseManager.js';
 import { SessionManager } from './worker/SessionManager.js';
 import { SSEBroadcaster } from './worker/SSEBroadcaster.js';
-import { SDKAgent } from './worker/SDKAgent.js';
-import { GeminiAgent, isGeminiSelected, isGeminiAvailable } from './worker/GeminiAgent.js';
-import { OpenRouterAgent, isOpenRouterSelected, isOpenRouterAvailable } from './worker/OpenRouterAgent.js';
+import { ApiAgent } from './worker/ApiAgent.js';
 import { PaginationHelper } from './worker/PaginationHelper.js';
 import { SettingsManager } from './worker/SettingsManager.js';
 import { SearchManager } from './worker/SearchManager.js';
@@ -158,9 +156,7 @@ export class WorkerService {
   private dbManager: DatabaseManager;
   private sessionManager: SessionManager;
   private sseBroadcaster: SSEBroadcaster;
-  private sdkAgent: SDKAgent;
-  private geminiAgent: GeminiAgent;
-  private openRouterAgent: OpenRouterAgent;
+  private apiAgent: ApiAgent;
   private paginationHelper: PaginationHelper;
   private settingsManager: SettingsManager;
   private sessionEventBroadcaster: SessionEventBroadcaster;
@@ -199,9 +195,7 @@ export class WorkerService {
     this.dbManager = new DatabaseManager();
     this.sessionManager = new SessionManager(this.dbManager);
     this.sseBroadcaster = new SSEBroadcaster();
-    this.sdkAgent = new SDKAgent(this.dbManager, this.sessionManager);
-    this.geminiAgent = new GeminiAgent(this.dbManager, this.sessionManager);
-    this.openRouterAgent = new OpenRouterAgent(this.dbManager, this.sessionManager);
+    this.apiAgent = new ApiAgent(this.dbManager, this.sessionManager);
 
     this.paginationHelper = new PaginationHelper(this.dbManager);
     this.settingsManager = new SettingsManager(this.dbManager);
@@ -228,11 +222,8 @@ export class WorkerService {
       onRestart: () => this.shutdown(),
       workerPath: __filename,
       getAiStatus: () => {
-        let provider = 'claude';
-        if (isOpenRouterSelected() && isOpenRouterAvailable()) provider = 'openrouter';
-        else if (isGeminiSelected() && isGeminiAvailable()) provider = 'gemini';
         return {
-          provider,
+          provider: 'anthropic-api',
           authMethod: getAuthMethodDescription(),
           lastInteraction: this.lastAiInteraction
             ? {
@@ -330,7 +321,7 @@ export class WorkerService {
 
     // Standard routes (registered AFTER guard middleware)
     this.server.registerRoutes(new ViewerRoutes(this.sseBroadcaster, this.dbManager, this.sessionManager));
-    this.server.registerRoutes(new SessionRoutes(this.sessionManager, this.dbManager, this.sdkAgent, this.geminiAgent, this.openRouterAgent, this.sessionEventBroadcaster, this));
+    this.server.registerRoutes(new SessionRoutes(this.sessionManager, this.dbManager, this.apiAgent, this.sessionEventBroadcaster, this));
     this.server.registerRoutes(new DataRoutes(this.paginationHelper, this.dbManager, this.sessionManager, this.sseBroadcaster, this, this.startTime));
     this.server.registerRoutes(new SettingsRoutes(this.settingsManager));
     this.server.registerRoutes(new LogsRoutes());

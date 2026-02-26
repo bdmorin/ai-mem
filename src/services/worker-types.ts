@@ -169,11 +169,8 @@ export interface DBSession {
 }
 
 // ============================================================================
-// SDK Types
+// Observation Types (local definitions, no SDK dependency)
 // ============================================================================
-
-// Re-export the actual SDK type to ensure compatibility
-export type { SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
 
 export interface ParsedObservation {
   type: string;

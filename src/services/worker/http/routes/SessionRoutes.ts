@@ -2,7 +2,7 @@
  * Session Routes
  *
  * Handles session lifecycle operations: initialization, observations, summarization, completion.
- * These routes manage the flow of work through the Claude Agent SDK.
+ * These routes manage the flow of work through the raw Anthropic API via ApiAgent.
  */
 
 import express, { Request, Response } from 'express';
@@ -11,9 +11,7 @@ import { logger } from '../../../../utils/logger.js';
 import { stripMemoryTagsFromJson, stripMemoryTagsFromPrompt } from '../../../../utils/tag-stripping.js';
 import { SessionManager } from '../../SessionManager.js';
 import { DatabaseManager } from '../../DatabaseManager.js';
-import { SDKAgent } from '../../SDKAgent.js';
-import { GeminiAgent, isGeminiSelected, isGeminiAvailable } from '../../GeminiAgent.js';
-import { OpenRouterAgent, isOpenRouterSelected, isOpenRouterAvailable } from '../../OpenRouterAgent.js';
+import { ApiAgent } from '../../ApiAgent.js';
 import type { WorkerService } from '../../../worker-service.js';
 import { BaseRouteHandler } from '../BaseRouteHandler.js';
 import { SessionEventBroadcaster } from '../../events/SessionEventBroadcaster.js';
@@ -21,7 +19,6 @@ import { SessionCompletionHandler } from '../../session/SessionCompletionHandler
 import { PrivacyCheckValidator } from '../../validation/PrivacyCheckValidator.js';
 import { SettingsDefaultsManager } from '../../../../shared/SettingsDefaultsManager.js';
 import { USER_SETTINGS_PATH } from '../../../../shared/paths.js';
-import { getProcessBySession, ensureProcessExit } from '../../ProcessRegistry.js';
 
 export class SessionRoutes extends BaseRouteHandler {
   private completionHandler: SessionCompletionHandler;
@@ -31,9 +28,7 @@ export class SessionRoutes extends BaseRouteHandler {
   constructor(
     private sessionManager: SessionManager,
     private dbManager: DatabaseManager,
-    private sdkAgent: SDKAgent,
-    private geminiAgent: GeminiAgent,
-    private openRouterAgent: OpenRouterAgent,
+    private apiAgent: ApiAgent,
     private eventBroadcaster: SessionEventBroadcaster,
     private workerService: WorkerService
   ) {
@@ -45,50 +40,8 @@ export class SessionRoutes extends BaseRouteHandler {
   }
 
   /**
-   * Get the appropriate agent based on settings
-   * Throws error if provider is selected but not configured (no silent fallback)
-   *
-   * Note: Session linking via contentSessionId allows provider switching mid-session.
-   * The conversationHistory on ActiveSession maintains context across providers.
-   */
-  private getActiveAgent(): SDKAgent | GeminiAgent | OpenRouterAgent {
-    if (isOpenRouterSelected()) {
-      if (isOpenRouterAvailable()) {
-        logger.debug('SESSION', 'Using OpenRouter agent');
-        return this.openRouterAgent;
-      } else {
-        throw new Error('OpenRouter provider selected but no API key configured. Set AI_MEM_OPENROUTER_API_KEY in settings or OPENROUTER_API_KEY environment variable.');
-      }
-    }
-    if (isGeminiSelected()) {
-      if (isGeminiAvailable()) {
-        logger.debug('SESSION', 'Using Gemini agent');
-        return this.geminiAgent;
-      } else {
-        throw new Error('Gemini provider selected but no API key configured. Set AI_MEM_GEMINI_API_KEY in settings or GEMINI_API_KEY environment variable.');
-      }
-    }
-    return this.sdkAgent;
-  }
-
-  /**
-   * Get the currently selected provider name
-   */
-  private getSelectedProvider(): 'claude' | 'gemini' | 'openrouter' {
-    if (isOpenRouterSelected() && isOpenRouterAvailable()) {
-      return 'openrouter';
-    }
-    return (isGeminiSelected() && isGeminiAvailable()) ? 'gemini' : 'claude';
-  }
-
-  /**
    * Ensures agent generator is running for a session
    * Auto-starts if not already running to process pending queue
-   * Uses either Claude SDK or Gemini based on settings
-   *
-   * Provider switching: If provider setting changed while generator is running,
-   * we let the current generator finish naturally (max 5s linger timeout).
-   * The next generator will use the new provider with shared conversationHistory.
    */
   private static readonly STALE_GENERATOR_THRESHOLD_MS = 30_000; // 30 seconds (#1099)
 
@@ -102,12 +55,10 @@ export class SessionRoutes extends BaseRouteHandler {
       return;
     }
 
-    const selectedProvider = this.getSelectedProvider();
-
     // Start generator if not running
     if (!session.generatorPromise) {
       this.spawnInProgress.set(sessionDbId, true);
-      this.startGeneratorWithProvider(session, selectedProvider, source);
+      this.startGenerator(session, source);
       return;
     }
 
@@ -127,36 +78,21 @@ export class SessionRoutes extends BaseRouteHandler {
       session.lastGeneratorActivity = Date.now();
       // Start a fresh generator
       this.spawnInProgress.set(sessionDbId, true);
-      this.startGeneratorWithProvider(session, selectedProvider, 'stale-recovery');
+      this.startGenerator(session, 'stale-recovery');
       return;
-    }
-
-    // Generator is running - check if provider changed
-    if (session.currentProvider && session.currentProvider !== selectedProvider) {
-      logger.info('SESSION', `Provider changed, will switch after current generator finishes`, {
-        sessionId: sessionDbId,
-        currentProvider: session.currentProvider,
-        selectedProvider,
-        historyLength: session.conversationHistory.length
-      });
-      // Let current generator finish naturally, next one will use new provider
-      // The shared conversationHistory ensures context is preserved
     }
   }
 
   /**
-   * Start a generator with the specified provider
+   * Start the API agent generator for a session
    */
-  private startGeneratorWithProvider(
+  private startGenerator(
     session: ReturnType<typeof this.sessionManager.getSession>,
-    provider: 'claude' | 'gemini' | 'openrouter',
     source: string
   ): void {
     if (!session) return;
 
     // Reset AbortController if it was previously aborted
-    // This fixes the bug where a session gets stuck in an infinite "Generator aborted" loop
-    // after its AbortController was aborted (e.g., from a previous generator exit)
     if (session.abortController.signal.aborted) {
       logger.debug('SESSION', 'Resetting aborted AbortController before starting generator', {
         sessionId: session.sessionDbId
@@ -164,31 +100,27 @@ export class SessionRoutes extends BaseRouteHandler {
       session.abortController = new AbortController();
     }
 
-    const agent = provider === 'openrouter' ? this.openRouterAgent : (provider === 'gemini' ? this.geminiAgent : this.sdkAgent);
-    const agentName = provider === 'openrouter' ? 'OpenRouter' : (provider === 'gemini' ? 'Gemini' : 'Claude SDK');
-
-    // Use database count for accurate telemetry (in-memory array is always empty due to FK constraint fix)
+    // Use database count for accurate telemetry
     const pendingStore = this.sessionManager.getPendingMessageStore();
     const actualQueueDepth = pendingStore.getPendingCount(session.sessionDbId);
 
-    logger.info('SESSION', `Generator auto-starting (${source}) using ${agentName}`, {
+    logger.info('SESSION', `Generator auto-starting (${source}) using Anthropic API`, {
       sessionId: session.sessionDbId,
       queueDepth: actualQueueDepth,
       historyLength: session.conversationHistory.length
     });
 
-    // Track which provider is running and mark activity for stale detection (#1099)
-    session.currentProvider = provider;
+    // Track activity for stale detection (#1099)
+    session.currentProvider = 'claude';
     session.lastGeneratorActivity = Date.now();
 
-    session.generatorPromise = agent.startSession(session, this.workerService)
+    session.generatorPromise = this.apiAgent.startSession(session, this.workerService)
       .catch(error => {
         // Only log non-abort errors
         if (session.abortController.signal.aborted) return;
-        
+
         logger.error('SESSION', `Generator failed`, {
           sessionId: session.sessionDbId,
-          provider: provider,
           error: error.message
         }, error);
 
@@ -209,12 +141,6 @@ export class SessionRoutes extends BaseRouteHandler {
         }
       })
       .finally(async () => {
-        // CRITICAL: Verify subprocess exit to prevent zombie accumulation (Issue #1168)
-        const tracked = getProcessBySession(session.sessionDbId);
-        if (tracked && !tracked.process.killed && tracked.process.exitCode === null) {
-          await ensureProcessExit(tracked, 5000);
-        }
-
         const sessionDbId = session.sessionDbId;
         this.spawnInProgress.delete(sessionDbId);
         const wasAborted = session.abortController.signal.aborted;
@@ -235,8 +161,6 @@ export class SessionRoutes extends BaseRouteHandler {
             const pendingStore = this.sessionManager.getPendingMessageStore();
             const pendingCount = pendingStore.getPendingCount(sessionDbId);
 
-            // CRITICAL: Limit consecutive restarts to prevent infinite loops
-            // This prevents runaway API costs when there's a persistent error (e.g., memorySessionId not captured)
             const MAX_CONSECUTIVE_RESTARTS = 3;
 
             if (pendingCount > 0) {
@@ -256,7 +180,6 @@ export class SessionRoutes extends BaseRouteHandler {
                   maxRestarts: MAX_CONSECUTIVE_RESTARTS,
                   action: 'Generator will NOT restart. Check logs for root cause. Messages remain in pending state.'
                 });
-                // Don't restart - abort to prevent further API calls
                 session.abortController.abort();
                 return;
               }
@@ -268,7 +191,7 @@ export class SessionRoutes extends BaseRouteHandler {
                 maxRestarts: MAX_CONSECUTIVE_RESTARTS
               });
 
-              // Abort OLD controller before replacing to prevent child process leaks
+              // Abort OLD controller before replacing
               const oldController = session.abortController;
               session.abortController = new AbortController();
               oldController.abort();
@@ -278,32 +201,26 @@ export class SessionRoutes extends BaseRouteHandler {
               // Exponential backoff: 1s, 2s, 4s for subsequent restarts
               const backoffMs = Math.min(1000 * Math.pow(2, session.consecutiveRestarts - 1), 8000);
 
-              // Delay before restart with exponential backoff
               setTimeout(() => {
                 this.crashRecoveryScheduled.delete(sessionDbId);
                 const stillExists = this.sessionManager.getSession(sessionDbId);
                 if (stillExists && !stillExists.generatorPromise) {
-                  this.startGeneratorWithProvider(stillExists, this.getSelectedProvider(), 'crash-recovery');
+                  this.startGenerator(stillExists, 'crash-recovery');
                 }
               }, backoffMs);
             } else {
-              // No pending work - abort to kill the child process
+              // No pending work
               session.abortController.abort();
-              // Reset restart counter on successful completion
               session.consecutiveRestarts = 0;
               logger.debug('SESSION', 'Aborted controller after natural completion', {
                 sessionId: sessionDbId
               });
             }
           } catch (e) {
-            // Ignore errors during recovery check, but still abort to prevent leaks
             logger.debug('SESSION', 'Error during recovery check, aborting to prevent leaks', { sessionId: sessionDbId, error: e instanceof Error ? e.message : String(e) });
             session.abortController.abort();
           }
         }
-        // NOTE: We do NOT delete the session here anymore.
-        // The generator waits for events, so if it exited, it's either aborted or crashed.
-        // Idle sessions stay in memory (ActiveSession is small) to listen for future events.
       });
   }
 
