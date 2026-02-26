@@ -1,29 +1,23 @@
 {
-  "name": "claude-mem",
-  "version": "10.4.4",
-  "description": "Memory compression system for Claude Code - persist context across sessions",
+  "name": "ai-mem",
+  "version": "1.0.0",
+  "description": "Persistent memory system for Claude Code - preserve context across sessions",
   "keywords": [
-    "claude",
-    "claude-code",
-    "claude-agent-sdk",
     "mcp",
     "plugin",
     "memory",
     "compression",
-    "knowledge-graph",
-    "transcript",
-    "typescript",
-    "nodejs"
+    "typescript"
   ],
-  "author": "Alex Newman",
+  "author": "Brian Morin",
   "license": "AGPL-3.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/thedotmack/claude-mem.git"
+    "url": "https://github.com/bdmorin/ai-mem.git"
   },
-  "homepage": "https://github.com/thedotmack/claude-mem#readme",
+  "homepage": "https://github.com/bdmorin/ai-mem#readme",
   "bugs": {
-    "url": "https://github.com/thedotmack/claude-mem/issues"
+    "url": "https://github.com/bdmorin/ai-mem/issues"
   },
   "type": "module",
   "exports": {
@@ -48,12 +42,12 @@
   "scripts": {
     "dev": "npm run build-and-sync",
     "build": "node scripts/build-hooks.js",
-    "build-and-sync": "npm run build && npm run sync-marketplace && sleep 1 && cd ~/.claude/plugins/marketplaces/thedotmack && npm run worker:restart",
+    "build-and-sync": "npm run build && npm run sync-marketplace && sleep 1 && cd ~/.claude/plugins/marketplaces/bdmorin && npm run worker:restart",
     "sync-marketplace": "node scripts/sync-marketplace.cjs",
     "sync-marketplace:force": "node scripts/sync-marketplace.cjs --force",
     "build:binaries": "node scripts/build-worker-binary.js",
-    "worker:logs": "tail -n 50 ~/.claude-mem/logs/worker-$(date +%Y-%m-%d).log",
-    "worker:tail": "tail -f 50 ~/.claude-mem/logs/worker-$(date +%Y-%m-%d).log",
+    "worker:logs": "tail -n 50 ~/.claude/ai-mem-data/logs/worker-$(date +%Y-%m-%d).log",
+    "worker:tail": "tail -f 50 ~/.claude/ai-mem-data/logs/worker-$(date +%Y-%m-%d).log",
     "changelog:generate": "node scripts/generate-changelog.js",
     "discord:notify": "node scripts/discord-release-notify.js",
     "worker:start": "bun plugin/scripts/worker-service.cjs start",

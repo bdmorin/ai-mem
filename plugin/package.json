@@ -1,8 +1,8 @@
 {
-  "name": "claude-mem-plugin",
-  "version": "10.4.4",
+  "name": "ai-mem-plugin",
+  "version": "1.0.0",
   "private": true,
-  "description": "Runtime dependencies for claude-mem bundled hooks",
+  "description": "Runtime dependencies for ai-mem bundled hooks",
   "type": "module",
   "dependencies": {
     "@chroma-core/default-embed": "^0.1.9"
