@@ -1,16 +1,12 @@
 /**
- * EnvManager - Centralized environment variable management for ai-mem
+ * EnvManager - Centralized credential management for ai-mem
  *
  * Provides isolated credential storage in ~/.claude/ai-mem-data/.env
- * This ensures ai-mem uses its own configured credentials,
- * not random ANTHROPIC_API_KEY values from project .env files.
- *
- * Issue #733: SDK was auto-discovering API keys from user's shell environment,
- * causing memory operations to bill personal API accounts instead of CLI subscription.
+ * for the Anthropic API key used by the observation extractor.
  */
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
-import { join, dirname } from 'path';
+import { join } from 'path';
 import { homedir } from 'os';
 import { logger } from '../utils/logger.js';
 
@@ -18,30 +14,13 @@ import { logger } from '../utils/logger.js';
 const DATA_DIR = join(homedir(), '.claude', 'ai-mem-data');
 export const ENV_FILE_PATH = join(DATA_DIR, '.env');
 
-// Environment variables to STRIP from subprocess environment (blocklist approach)
-// Only ANTHROPIC_API_KEY is stripped because it's the specific variable that causes
-// Issue #733: project .env files set ANTHROPIC_API_KEY which the SDK auto-discovers,
-// causing memory operations to bill personal API accounts instead of CLI subscription.
-//
-// All other env vars (ANTHROPIC_AUTH_TOKEN, ANTHROPIC_BASE_URL, system vars, etc.)
-// are passed through to avoid breaking CLI authentication, proxies, and platform features.
-const BLOCKED_ENV_VARS = [
-  'ANTHROPIC_API_KEY',  // Issue #733: Prevent auto-discovery from project .env files
-  'CLAUDECODE',         // Prevent "cannot be launched inside another Claude Code session" error
-];
-
 // Credential keys that ai-mem manages
 export const MANAGED_CREDENTIAL_KEYS = [
   'ANTHROPIC_API_KEY',
-  'GEMINI_API_KEY',
-  'OPENROUTER_API_KEY',
 ];
 
 export interface AiMemEnv {
-  // Credentials (optional - empty means use CLI billing for Claude)
   ANTHROPIC_API_KEY?: string;
-  GEMINI_API_KEY?: string;
-  OPENROUTER_API_KEY?: string;
 }
 
 /**
@@ -83,7 +62,7 @@ function parseEnvFile(content: string): Record<string, string> {
 function serializeEnvFile(env: Record<string, string>): string {
   const lines: string[] = [
     '# ai-mem credentials',
-    '# This file stores API keys for ai-mem memory agent',
+    '# This file stores the Anthropic API key for ai-mem observation extraction',
     '# Edit this file or use ai-mem settings to configure',
     '',
   ];
@@ -101,7 +80,7 @@ function serializeEnvFile(env: Record<string, string>): string {
 
 /**
  * Load credentials from ~/.claude/ai-mem-data/.env
- * Returns empty object if file doesn't exist (means use CLI billing)
+ * Returns empty object if file doesn't exist
  */
 export function loadAiMemEnv(): AiMemEnv {
   if (!existsSync(ENV_FILE_PATH)) {
@@ -112,11 +91,8 @@ export function loadAiMemEnv(): AiMemEnv {
     const content = readFileSync(ENV_FILE_PATH, 'utf-8');
     const parsed = parseEnvFile(content);
 
-    // Only return managed credential keys
     const result: AiMemEnv = {};
     if (parsed.ANTHROPIC_API_KEY) result.ANTHROPIC_API_KEY = parsed.ANTHROPIC_API_KEY;
-    if (parsed.GEMINI_API_KEY) result.GEMINI_API_KEY = parsed.GEMINI_API_KEY;
-    if (parsed.OPENROUTER_API_KEY) result.OPENROUTER_API_KEY = parsed.OPENROUTER_API_KEY;
 
     return result;
   } catch (error) {
@@ -143,26 +119,11 @@ export function saveAiMemEnv(env: AiMemEnv): void {
     // Update with new values
     const updated: Record<string, string> = { ...existing };
 
-    // Only update managed keys
     if (env.ANTHROPIC_API_KEY !== undefined) {
       if (env.ANTHROPIC_API_KEY) {
         updated.ANTHROPIC_API_KEY = env.ANTHROPIC_API_KEY;
       } else {
         delete updated.ANTHROPIC_API_KEY;
-      }
-    }
-    if (env.GEMINI_API_KEY !== undefined) {
-      if (env.GEMINI_API_KEY) {
-        updated.GEMINI_API_KEY = env.GEMINI_API_KEY;
-      } else {
-        delete updated.GEMINI_API_KEY;
-      }
-    }
-    if (env.OPENROUTER_API_KEY !== undefined) {
-      if (env.OPENROUTER_API_KEY) {
-        updated.OPENROUTER_API_KEY = env.OPENROUTER_API_KEY;
-      } else {
-        delete updated.OPENROUTER_API_KEY;
       }
     }
 
@@ -174,66 +135,8 @@ export function saveAiMemEnv(env: AiMemEnv): void {
 }
 
 /**
- * Build a clean environment for spawning SDK subprocesses
- *
- * Uses a BLOCKLIST approach: inherits the full process environment but strips
- * only ANTHROPIC_API_KEY to prevent Issue #733 (accidental billing from project .env files).
- *
- * All other variables pass through, including:
- * - ANTHROPIC_AUTH_TOKEN (CLI subscription auth)
- * - ANTHROPIC_BASE_URL (custom proxy endpoints)
- * - Platform-specific vars (USERPROFILE, XDG_*, etc.)
- *
- * If ai-mem has an explicit ANTHROPIC_API_KEY in ~/.claude/ai-mem-data/.env, it's re-injected
- * after stripping, so the managed credential takes precedence over any ambient value.
- *
- * @param includeCredentials - Whether to include API keys from ~/.claude/ai-mem-data/.env (default: true)
- */
-export function buildIsolatedEnv(includeCredentials: boolean = true): Record<string, string> {
-  // 1. Start with full process environment
-  const isolatedEnv: Record<string, string> = {};
-  for (const [key, value] of Object.entries(process.env)) {
-    if (value !== undefined && !BLOCKED_ENV_VARS.includes(key)) {
-      isolatedEnv[key] = value;
-    }
-  }
-
-  // 2. Override SDK entrypoint marker
-  isolatedEnv.CLAUDE_CODE_ENTRYPOINT = 'sdk-ts';
-
-  // 3. Re-inject managed credentials from ai-mem's .env file
-  if (includeCredentials) {
-    const credentials = loadAiMemEnv();
-
-    // Only add ANTHROPIC_API_KEY if explicitly configured in ai-mem
-    // If not configured, CLI billing will be used (via ANTHROPIC_AUTH_TOKEN passthrough)
-    if (credentials.ANTHROPIC_API_KEY) {
-      isolatedEnv.ANTHROPIC_API_KEY = credentials.ANTHROPIC_API_KEY;
-    }
-    // Note: GEMINI_API_KEY and OPENROUTER_API_KEY pass through from process.env,
-    // but ai-mem's .env takes precedence if configured
-    if (credentials.GEMINI_API_KEY) {
-      isolatedEnv.GEMINI_API_KEY = credentials.GEMINI_API_KEY;
-    }
-    if (credentials.OPENROUTER_API_KEY) {
-      isolatedEnv.OPENROUTER_API_KEY = credentials.OPENROUTER_API_KEY;
-    }
-
-    // 4. Pass through Claude CLI's OAuth token if available (fallback for CLI subscription billing)
-    // When no ANTHROPIC_API_KEY is configured, the spawned CLI uses subscription billing
-    // which requires either ~/.claude/.credentials.json or CLAUDE_CODE_OAUTH_TOKEN.
-    // The worker inherits this token from the Claude Code session that started it.
-    if (!isolatedEnv.ANTHROPIC_API_KEY && process.env.CLAUDE_CODE_OAUTH_TOKEN) {
-      isolatedEnv.CLAUDE_CODE_OAUTH_TOKEN = process.env.CLAUDE_CODE_OAUTH_TOKEN;
-    }
-  }
-
-  return isolatedEnv;
-}
-
-/**
  * Get a specific credential from ai-mem's .env
- * Returns undefined if not set (which means use default/CLI billing)
+ * Returns undefined if not set
  */
 export function getCredential(key: keyof AiMemEnv): string | undefined {
   const env = loadAiMemEnv();
@@ -252,7 +155,6 @@ export function setCredential(key: keyof AiMemEnv, value: string): void {
 
 /**
  * Check if ai-mem has an Anthropic API key configured
- * If false, it means CLI billing should be used
  */
 export function hasAnthropicApiKey(): boolean {
   const env = loadAiMemEnv();
@@ -266,8 +168,8 @@ export function getAuthMethodDescription(): string {
   if (hasAnthropicApiKey()) {
     return 'API key (from ~/.claude/ai-mem-data/.env)';
   }
-  if (process.env.CLAUDE_CODE_OAUTH_TOKEN) {
-    return 'Claude Code OAuth token (from parent process)';
+  if (process.env.ANTHROPIC_API_KEY) {
+    return 'API key (from environment)';
   }
-  return 'Claude Code CLI (subscription billing)';
+  return 'No API key configured';
 }

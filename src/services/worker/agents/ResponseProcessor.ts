@@ -8,11 +8,11 @@
  * - Broadcast to SSE clients
  * - Clean up processed messages
  *
- * This module extracts 150+ lines of duplicate code from SDKAgent, GeminiAgent, and OpenRouterAgent.
+ * Shared response processing for agent implementations (ApiAgent).
  */
 
 import { logger } from '../../../utils/logger.js';
-import { parseObservations, parseSummary, type ParsedObservation, type ParsedSummary } from '../../../sdk/parser.js';
+import { parseObservations, parseSummary, type ParsedObservation, type ParsedSummary } from '../../api/parser.js';
 import { updateFolderClaudeMdFiles } from '../../../utils/claude-md-utils.js';
 import { getWorkerPort } from '../../../shared/worker-utils.js';
 import { SettingsDefaultsManager } from '../../../shared/SettingsDefaultsManager.js';
@@ -79,7 +79,7 @@ export async function processAgentResponse(
   }
 
   // SAFETY NET (Issue #846 / Multi-terminal FK fix):
-  // The PRIMARY fix is in SDKAgent.ts where ensureMemorySessionIdRegistered() is called
+  // The PRIMARY fix is in ApiAgent.ts where ensureMemorySessionIdRegistered() is called
   // immediately when the SDK returns a memory_session_id. This call is a defensive safety net
   // in case the DB was somehow not updated (race condition, crash, etc.).
   // In multi-terminal scenarios, createSDKSession() now resets memory_session_id to NULL

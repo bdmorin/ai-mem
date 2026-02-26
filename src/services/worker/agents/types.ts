@@ -7,7 +7,7 @@
  */
 
 import type { ActiveSession } from '../../worker-types.js';
-import type { ParsedObservation, ParsedSummary } from '../../../sdk/parser.js';
+import type { ParsedObservation, ParsedSummary } from '../../api/parser.js';
 
 // ============================================================================
 // Worker Reference Type

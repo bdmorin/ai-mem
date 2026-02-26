@@ -434,12 +434,12 @@ export class SessionManager {
   }
 
   /**
-   * Get message iterator for SDKAgent to consume (event-driven, no polling)
+   * Get message iterator for ApiAgent to consume (event-driven, no polling)
    * Auto-initializes session if not in memory but exists in database
    *
    * CRITICAL: Uses PendingMessageStore for crash-safe message persistence.
    * Messages are marked as 'processing' when yielded and must be marked 'processed'
-   * by the SDK agent after successful completion.
+   * by the agent after successful completion.
    */
   async *getMessageIterator(sessionDbId: number): AsyncIterableIterator<PendingMessageWithId> {
     // Auto-initialize from database if needed (handles worker restarts)
@@ -456,13 +456,12 @@ export class SessionManager {
     const processor = new SessionQueueProcessor(this.getPendingStore(), emitter);
 
     // Use the robust iterator - messages are deleted on claim (no tracking needed)
-    // CRITICAL: Pass onIdleTimeout callback that triggers abort to kill the subprocess
-    // Without this, the iterator returns but the Claude subprocess stays alive as a zombie
+    // Pass onIdleTimeout callback that triggers abort to end the generator loop
     for await (const message of processor.createIterator({
       sessionDbId,
       signal: session.abortController.signal,
       onIdleTimeout: () => {
-        logger.info('SESSION', 'Triggering abort due to idle timeout to kill subprocess', { sessionDbId });
+        logger.info('SESSION', 'Triggering abort due to idle timeout', { sessionDbId });
         session.idleTimedOut = true;
         session.abortController.abort();
       }
@@ -483,7 +482,7 @@ export class SessionManager {
   }
 
   /**
-   * Get the PendingMessageStore (for SDKAgent to mark messages as processed)
+   * Get the PendingMessageStore (for ApiAgent to mark messages as processed)
    */
   getPendingMessageStore(): PendingMessageStore {
     return this.getPendingStore();

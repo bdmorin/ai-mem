@@ -13,7 +13,7 @@
  */
 
 import { ChromaMcpManager } from './ChromaMcpManager.js';
-import { ParsedObservation, ParsedSummary } from '../../sdk/parser.js';
+import { ParsedObservation, ParsedSummary } from '../api/parser.js';
 import { SessionStore } from '../sqlite/SessionStore.js';
 import { logger } from '../../utils/logger.js';
 

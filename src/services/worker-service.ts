@@ -115,8 +115,7 @@ import { SettingsRoutes } from './worker/http/routes/SettingsRoutes.js';
 import { LogsRoutes } from './worker/http/routes/LogsRoutes.js';
 import { MemoryRoutes } from './worker/http/routes/MemoryRoutes.js';
 
-// Process management for zombie cleanup (Issue #737)
-import { startOrphanReaper, reapOrphanedProcesses, getProcessBySession, ensureProcessExit } from './worker/ProcessRegistry.js';
+// Note: ProcessRegistry (subprocess zombie cleanup) removed — no longer needed with direct API model
 
 /**
  * Build JSON status output for hook framework communication.
@@ -170,9 +169,6 @@ export class WorkerService {
   // Initialization tracking
   private initializationComplete: Promise<void>;
   private resolveInitialization!: () => void;
-
-  // Orphan reaper cleanup function (Issue #737)
-  private stopOrphanReaper: (() => void) | null = null;
 
   // Stale session reaper interval (Issue #1168)
   private staleSessionReaperInterval: ReturnType<typeof setInterval> | null = null;
@@ -446,17 +442,7 @@ export class WorkerService {
       this.mcpReady = true;
       logger.success('WORKER', 'MCP server connected');
 
-      // Start orphan reaper to clean up zombie processes (Issue #737)
-      this.stopOrphanReaper = startOrphanReaper(() => {
-        const activeIds = new Set<number>();
-        for (const [id] of this.sessionManager['sessions']) {
-          activeIds.add(id);
-        }
-        return activeIds;
-      });
-      logger.info('SYSTEM', 'Started orphan reaper (runs every 5 minutes)');
-
-      // Reap stale sessions to unblock orphan process cleanup (Issue #1168)
+      // Reap stale sessions periodically (Issue #1168)
       this.staleSessionReaperInterval = setInterval(async () => {
         try {
           const reaped = await this.sessionManager.reapStaleSessions();
@@ -487,23 +473,10 @@ export class WorkerService {
   }
 
   /**
-   * Get the appropriate agent based on provider settings.
-   * Same logic as SessionRoutes.getActiveAgent() for consistency.
-   */
-  private getActiveAgent(): SDKAgent | GeminiAgent | OpenRouterAgent {
-    if (isOpenRouterSelected() && isOpenRouterAvailable()) {
-      return this.openRouterAgent;
-    }
-    if (isGeminiSelected() && isGeminiAvailable()) {
-      return this.geminiAgent;
-    }
-    return this.sdkAgent;
-  }
-
-  /**
-   * Start a session processor
-   * On SDK resume failure (terminated session), falls back to Gemini/OpenRouter if available,
-   * otherwise marks messages abandoned and removes session so queue does not grow unbounded.
+   * Start a session processor.
+   * Uses ApiAgent for direct HTTP calls to the Anthropic Messages API.
+   * On unrecoverable errors (e.g., invalid API key), stops retrying.
+   * On transient errors, allows restart if pending work remains.
    */
   private startSessionProcessor(
     session: ReturnType<typeof this.sessionManager.getSession>,
@@ -512,8 +485,6 @@ export class WorkerService {
     if (!session) return;
 
     const sid = session.sessionDbId;
-    const agent = this.getActiveAgent();
-    const providerName = agent.constructor.name;
 
     // Before starting generator, check if AbortController is already aborted
     // This can happen after a previous generator was aborted but the session still has pending work
@@ -528,33 +499,32 @@ export class WorkerService {
     let hadUnrecoverableError = false;
     let sessionFailed = false;
 
-    logger.info('SYSTEM', `Starting generator (${source}) using ${providerName}`, { sessionId: sid });
+    logger.info('SYSTEM', `Starting generator (${source}) using ApiAgent`, { sessionId: sid });
 
     // Track generator activity for stale detection (Issue #1099)
     session.lastGeneratorActivity = Date.now();
 
-    session.generatorPromise = agent.startSession(session, this)
+    session.generatorPromise = this.apiAgent.startSession(session, this)
       .catch(async (error: unknown) => {
         const errorMessage = (error as Error)?.message || '';
 
         // Detect unrecoverable errors that should NOT trigger restart
         // These errors will fail immediately on retry, causing infinite loops
         const unrecoverablePatterns = [
-          'Claude executable not found',
-          'CLAUDE_CODE_PATH',
-          'ENOENT',
-          'spawn',
           'Invalid API key',
+          'No Anthropic API key',
+          'authentication_error',
+          '401',
         ];
         if (unrecoverablePatterns.some(pattern => errorMessage.includes(pattern))) {
           hadUnrecoverableError = true;
           this.lastAiInteraction = {
             timestamp: Date.now(),
             success: false,
-            provider: providerName,
+            provider: 'anthropic-api',
             error: errorMessage,
           };
-          logger.error('SDK', 'Unrecoverable generator error - will NOT restart', {
+          logger.error('API', 'Unrecoverable generator error - will NOT restart', {
             sessionId: session.sessionDbId,
             project: session.project,
             errorMessage
@@ -562,50 +532,20 @@ export class WorkerService {
           return;
         }
 
-        // Fallback for terminated SDK sessions (provider abstraction)
-        if (this.isSessionTerminatedError(error)) {
-          logger.warn('SDK', 'SDK resume failed, falling back to standalone processing', {
-            sessionId: session.sessionDbId,
-            project: session.project,
-            reason: error instanceof Error ? error.message : String(error)
-          });
-          return this.runFallbackForTerminatedSession(session, error);
-        }
-
-        // Detect stale resume failures - SDK session context was lost
-        if ((errorMessage.includes('aborted by user') || errorMessage.includes('No conversation found'))
-            && session.memorySessionId) {
-          logger.warn('SDK', 'Detected stale resume failure, clearing memorySessionId for fresh start', {
-            sessionId: session.sessionDbId,
-            memorySessionId: session.memorySessionId,
-            errorMessage
-          });
-          // Clear stale memorySessionId and force fresh init on next attempt
-          this.dbManager.getSessionStore().updateMemorySessionId(session.sessionDbId, null);
-          session.memorySessionId = null;
-          session.forceInit = true;
-        }
-        logger.error('SDK', 'Session generator failed', {
+        logger.error('API', 'Session generator failed', {
           sessionId: session.sessionDbId,
           project: session.project,
-          provider: providerName
         }, error as Error);
         sessionFailed = true;
         this.lastAiInteraction = {
           timestamp: Date.now(),
           success: false,
-          provider: providerName,
+          provider: 'anthropic-api',
           error: errorMessage,
         };
         throw error;
       })
       .finally(async () => {
-        // CRITICAL: Verify subprocess exit to prevent zombie accumulation (Issue #1168)
-        const trackedProcess = getProcessBySession(session.sessionDbId);
-        if (trackedProcess && !trackedProcess.process.killed && trackedProcess.process.exitCode === null) {
-          await ensureProcessExit(trackedProcess, 5000);
-        }
-
         session.generatorPromise = null;
 
         // Record successful AI interaction if no error occurred
@@ -613,7 +553,7 @@ export class WorkerService {
           this.lastAiInteraction = {
             timestamp: Date.now(),
             success: true,
-            provider: providerName,
+            provider: 'anthropic-api',
           };
         }
 
@@ -657,78 +597,6 @@ export class WorkerService {
 
         this.broadcastProcessingStatus();
       });
-  }
-
-  /**
-   * Match errors that indicate the Claude Code process/session is gone (resume impossible).
-   * Used to trigger graceful fallback instead of leaving pending messages stuck forever.
-   */
-  private isSessionTerminatedError(error: unknown): boolean {
-    const msg = error instanceof Error ? error.message : String(error);
-    const normalized = msg.toLowerCase();
-    return (
-      normalized.includes('process aborted by user') ||
-      normalized.includes('processtransport') ||
-      normalized.includes('not ready for writing') ||
-      normalized.includes('session generator failed') ||
-      normalized.includes('claude code process')
-    );
-  }
-
-  /**
-   * When SDK resume fails due to terminated session: try Gemini then OpenRouter to drain
-   * pending messages; if no fallback available, mark messages abandoned and remove session.
-   */
-  private async runFallbackForTerminatedSession(
-    session: ReturnType<typeof this.sessionManager.getSession>,
-    _originalError: unknown
-  ): Promise<void> {
-    if (!session) return;
-
-    const sessionDbId = session.sessionDbId;
-
-    // Fallback agents need memorySessionId for storeObservations
-    if (!session.memorySessionId) {
-      const syntheticId = `fallback-${sessionDbId}-${Date.now()}`;
-      session.memorySessionId = syntheticId;
-      this.dbManager.getSessionStore().updateMemorySessionId(sessionDbId, syntheticId);
-    }
-
-    if (isGeminiAvailable()) {
-      try {
-        await this.geminiAgent.startSession(session, this);
-        return;
-      } catch (e) {
-        logger.warn('SDK', 'Fallback Gemini failed, trying OpenRouter', {
-          sessionId: sessionDbId,
-          error: e instanceof Error ? e.message : String(e)
-        });
-      }
-    }
-
-    if (isOpenRouterAvailable()) {
-      try {
-        await this.openRouterAgent.startSession(session, this);
-        return;
-      } catch (e) {
-        logger.warn('SDK', 'Fallback OpenRouter failed', {
-          sessionId: sessionDbId,
-          error: e instanceof Error ? e.message : String(e)
-        });
-      }
-    }
-
-    // No fallback or both failed: mark messages abandoned and remove session so queue doesn't grow
-    const pendingStore = this.sessionManager.getPendingMessageStore();
-    const abandoned = pendingStore.markAllSessionMessagesAbandoned(sessionDbId);
-    if (abandoned > 0) {
-      logger.warn('SDK', 'No fallback available; marked pending messages abandoned', {
-        sessionId: sessionDbId,
-        abandoned
-      });
-    }
-    this.sessionManager.removeSessionImmediate(sessionDbId);
-    this.sessionEventBroadcaster.broadcastSessionCompleted(sessionDbId);
   }
 
   /**
@@ -829,12 +697,6 @@ export class WorkerService {
    * Shutdown the worker service
    */
   async shutdown(): Promise<void> {
-    // Stop orphan reaper before shutdown (Issue #737)
-    if (this.stopOrphanReaper) {
-      this.stopOrphanReaper();
-      this.stopOrphanReaper = null;
-    }
-
     // Stop stale session reaper (Issue #1168)
     if (this.staleSessionReaperInterval) {
       clearInterval(this.staleSessionReaperInterval);
