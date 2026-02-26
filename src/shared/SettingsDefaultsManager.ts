@@ -13,61 +13,61 @@ import { DEFAULT_OBSERVATION_TYPES_STRING, DEFAULT_OBSERVATION_CONCEPTS_STRING }
 // logger.ts depends on SettingsDefaultsManager for its initialization
 
 export interface SettingsDefaults {
-  CLAUDE_MEM_MODEL: string;
-  CLAUDE_MEM_CONTEXT_OBSERVATIONS: string;
-  CLAUDE_MEM_WORKER_PORT: string;
-  CLAUDE_MEM_WORKER_HOST: string;
-  CLAUDE_MEM_SKIP_TOOLS: string;
+  AI_MEM_MODEL: string;
+  AI_MEM_CONTEXT_OBSERVATIONS: string;
+  AI_MEM_WORKER_PORT: string;
+  AI_MEM_WORKER_HOST: string;
+  AI_MEM_SKIP_TOOLS: string;
   // AI Provider Configuration
-  CLAUDE_MEM_PROVIDER: string;  // 'claude' | 'gemini' | 'openrouter'
-  CLAUDE_MEM_CLAUDE_AUTH_METHOD: string;  // 'cli' | 'api' - how Claude provider authenticates
-  CLAUDE_MEM_GEMINI_API_KEY: string;
-  CLAUDE_MEM_GEMINI_MODEL: string;  // 'gemini-2.5-flash-lite' | 'gemini-2.5-flash' | 'gemini-3-flash-preview'
-  CLAUDE_MEM_GEMINI_RATE_LIMITING_ENABLED: string;  // 'true' | 'false' - enable rate limiting for free tier
-  CLAUDE_MEM_OPENROUTER_API_KEY: string;
-  CLAUDE_MEM_OPENROUTER_MODEL: string;
-  CLAUDE_MEM_OPENROUTER_SITE_URL: string;
-  CLAUDE_MEM_OPENROUTER_APP_NAME: string;
-  CLAUDE_MEM_OPENROUTER_MAX_CONTEXT_MESSAGES: string;
-  CLAUDE_MEM_OPENROUTER_MAX_TOKENS: string;
+  AI_MEM_PROVIDER: string;  // 'claude' | 'gemini' | 'openrouter'
+  AI_MEM_CLAUDE_AUTH_METHOD: string;  // 'cli' | 'api' - how Claude provider authenticates
+  AI_MEM_GEMINI_API_KEY: string;
+  AI_MEM_GEMINI_MODEL: string;  // 'gemini-2.5-flash-lite' | 'gemini-2.5-flash' | 'gemini-3-flash-preview'
+  AI_MEM_GEMINI_RATE_LIMITING_ENABLED: string;  // 'true' | 'false' - enable rate limiting for free tier
+  AI_MEM_OPENROUTER_API_KEY: string;
+  AI_MEM_OPENROUTER_MODEL: string;
+  AI_MEM_OPENROUTER_SITE_URL: string;
+  AI_MEM_OPENROUTER_APP_NAME: string;
+  AI_MEM_OPENROUTER_MAX_CONTEXT_MESSAGES: string;
+  AI_MEM_OPENROUTER_MAX_TOKENS: string;
   // System Configuration
-  CLAUDE_MEM_DATA_DIR: string;
-  CLAUDE_MEM_LOG_LEVEL: string;
-  CLAUDE_MEM_PYTHON_VERSION: string;
+  AI_MEM_DATA_DIR: string;
+  AI_MEM_LOG_LEVEL: string;
+  AI_MEM_PYTHON_VERSION: string;
   CLAUDE_CODE_PATH: string;
-  CLAUDE_MEM_MODE: string;
+  AI_MEM_MODE: string;
   // Token Economics
-  CLAUDE_MEM_CONTEXT_SHOW_READ_TOKENS: string;
-  CLAUDE_MEM_CONTEXT_SHOW_WORK_TOKENS: string;
-  CLAUDE_MEM_CONTEXT_SHOW_SAVINGS_AMOUNT: string;
-  CLAUDE_MEM_CONTEXT_SHOW_SAVINGS_PERCENT: string;
+  AI_MEM_CONTEXT_SHOW_READ_TOKENS: string;
+  AI_MEM_CONTEXT_SHOW_WORK_TOKENS: string;
+  AI_MEM_CONTEXT_SHOW_SAVINGS_AMOUNT: string;
+  AI_MEM_CONTEXT_SHOW_SAVINGS_PERCENT: string;
   // Observation Filtering
-  CLAUDE_MEM_CONTEXT_OBSERVATION_TYPES: string;
-  CLAUDE_MEM_CONTEXT_OBSERVATION_CONCEPTS: string;
+  AI_MEM_CONTEXT_OBSERVATION_TYPES: string;
+  AI_MEM_CONTEXT_OBSERVATION_CONCEPTS: string;
   // Display Configuration
-  CLAUDE_MEM_CONTEXT_FULL_COUNT: string;
-  CLAUDE_MEM_CONTEXT_FULL_FIELD: string;
-  CLAUDE_MEM_CONTEXT_SESSION_COUNT: string;
+  AI_MEM_CONTEXT_FULL_COUNT: string;
+  AI_MEM_CONTEXT_FULL_FIELD: string;
+  AI_MEM_CONTEXT_SESSION_COUNT: string;
   // Feature Toggles
-  CLAUDE_MEM_CONTEXT_SHOW_LAST_SUMMARY: string;
-  CLAUDE_MEM_CONTEXT_SHOW_LAST_MESSAGE: string;
-  CLAUDE_MEM_CONTEXT_SHOW_TERMINAL_OUTPUT: string;
-  CLAUDE_MEM_FOLDER_CLAUDEMD_ENABLED: string;
+  AI_MEM_CONTEXT_SHOW_LAST_SUMMARY: string;
+  AI_MEM_CONTEXT_SHOW_LAST_MESSAGE: string;
+  AI_MEM_CONTEXT_SHOW_TERMINAL_OUTPUT: string;
+  AI_MEM_FOLDER_CLAUDEMD_ENABLED: string;
   // Process Management
-  CLAUDE_MEM_MAX_CONCURRENT_AGENTS: string;  // Max concurrent Claude SDK agent subprocesses (default: 2)
+  AI_MEM_MAX_CONCURRENT_AGENTS: string;  // Max concurrent agent subprocesses (default: 2)
   // Exclusion Settings
-  CLAUDE_MEM_EXCLUDED_PROJECTS: string;  // Comma-separated glob patterns for excluded project paths
-  CLAUDE_MEM_FOLDER_MD_EXCLUDE: string;  // JSON array of folder paths to exclude from CLAUDE.md generation
+  AI_MEM_EXCLUDED_PROJECTS: string;  // Comma-separated glob patterns for excluded project paths
+  AI_MEM_FOLDER_MD_EXCLUDE: string;  // JSON array of folder paths to exclude from CLAUDE.md generation
   // Chroma Vector Database Configuration
-  CLAUDE_MEM_CHROMA_ENABLED: string;   // 'true' | 'false' - set to 'false' for SQLite-only mode
-  CLAUDE_MEM_CHROMA_MODE: string;      // 'local' | 'remote'
-  CLAUDE_MEM_CHROMA_HOST: string;
-  CLAUDE_MEM_CHROMA_PORT: string;
-  CLAUDE_MEM_CHROMA_SSL: string;
+  AI_MEM_CHROMA_ENABLED: string;   // 'true' | 'false' - set to 'false' for SQLite-only mode
+  AI_MEM_CHROMA_MODE: string;      // 'local' | 'remote'
+  AI_MEM_CHROMA_HOST: string;
+  AI_MEM_CHROMA_PORT: string;
+  AI_MEM_CHROMA_SSL: string;
   // Future cloud support
-  CLAUDE_MEM_CHROMA_API_KEY: string;
-  CLAUDE_MEM_CHROMA_TENANT: string;
-  CLAUDE_MEM_CHROMA_DATABASE: string;
+  AI_MEM_CHROMA_API_KEY: string;
+  AI_MEM_CHROMA_TENANT: string;
+  AI_MEM_CHROMA_DATABASE: string;
 }
 
 export class SettingsDefaultsManager {
@@ -75,61 +75,61 @@ export class SettingsDefaultsManager {
    * Default values for all settings
    */
   private static readonly DEFAULTS: SettingsDefaults = {
-    CLAUDE_MEM_MODEL: 'claude-sonnet-4-5',
-    CLAUDE_MEM_CONTEXT_OBSERVATIONS: '50',
-    CLAUDE_MEM_WORKER_PORT: '37777',
-    CLAUDE_MEM_WORKER_HOST: '127.0.0.1',
-    CLAUDE_MEM_SKIP_TOOLS: 'ListMcpResourcesTool,SlashCommand,Skill,TodoWrite,AskUserQuestion',
+    AI_MEM_MODEL: 'claude-sonnet-4-5',
+    AI_MEM_CONTEXT_OBSERVATIONS: '50',
+    AI_MEM_WORKER_PORT: '37777',
+    AI_MEM_WORKER_HOST: '127.0.0.1',
+    AI_MEM_SKIP_TOOLS: 'ListMcpResourcesTool,SlashCommand,Skill,TodoWrite,AskUserQuestion',
     // AI Provider Configuration
-    CLAUDE_MEM_PROVIDER: 'claude',  // Default to Claude
-    CLAUDE_MEM_CLAUDE_AUTH_METHOD: 'cli',  // Default to CLI subscription billing (not API key)
-    CLAUDE_MEM_GEMINI_API_KEY: '',  // Empty by default, can be set via UI or env
-    CLAUDE_MEM_GEMINI_MODEL: 'gemini-2.5-flash-lite',  // Default Gemini model (highest free tier RPM)
-    CLAUDE_MEM_GEMINI_RATE_LIMITING_ENABLED: 'true',  // Rate limiting ON by default for free tier users
-    CLAUDE_MEM_OPENROUTER_API_KEY: '',  // Empty by default, can be set via UI or env
-    CLAUDE_MEM_OPENROUTER_MODEL: 'xiaomi/mimo-v2-flash:free',  // Default OpenRouter model (free tier)
-    CLAUDE_MEM_OPENROUTER_SITE_URL: '',  // Optional: for OpenRouter analytics
-    CLAUDE_MEM_OPENROUTER_APP_NAME: 'claude-mem',  // App name for OpenRouter analytics
-    CLAUDE_MEM_OPENROUTER_MAX_CONTEXT_MESSAGES: '20',  // Max messages in context window
-    CLAUDE_MEM_OPENROUTER_MAX_TOKENS: '100000',  // Max estimated tokens (~100k safety limit)
+    AI_MEM_PROVIDER: 'claude',  // Default to Claude
+    AI_MEM_CLAUDE_AUTH_METHOD: 'cli',  // Default to CLI subscription billing (not API key)
+    AI_MEM_GEMINI_API_KEY: '',  // Empty by default, can be set via UI or env
+    AI_MEM_GEMINI_MODEL: 'gemini-2.5-flash-lite',  // Default Gemini model (highest free tier RPM)
+    AI_MEM_GEMINI_RATE_LIMITING_ENABLED: 'true',  // Rate limiting ON by default for free tier users
+    AI_MEM_OPENROUTER_API_KEY: '',  // Empty by default, can be set via UI or env
+    AI_MEM_OPENROUTER_MODEL: 'xiaomi/mimo-v2-flash:free',  // Default OpenRouter model (free tier)
+    AI_MEM_OPENROUTER_SITE_URL: '',  // Optional: for OpenRouter analytics
+    AI_MEM_OPENROUTER_APP_NAME: 'ai-mem',  // App name for OpenRouter analytics
+    AI_MEM_OPENROUTER_MAX_CONTEXT_MESSAGES: '20',  // Max messages in context window
+    AI_MEM_OPENROUTER_MAX_TOKENS: '100000',  // Max estimated tokens (~100k safety limit)
     // System Configuration
-    CLAUDE_MEM_DATA_DIR: join(homedir(), '.claude-mem'),
-    CLAUDE_MEM_LOG_LEVEL: 'INFO',
-    CLAUDE_MEM_PYTHON_VERSION: '3.13',
+    AI_MEM_DATA_DIR: join(homedir(), '.claude', 'ai-mem-data'),
+    AI_MEM_LOG_LEVEL: 'INFO',
+    AI_MEM_PYTHON_VERSION: '3.13',
     CLAUDE_CODE_PATH: '', // Empty means auto-detect via 'which claude'
-    CLAUDE_MEM_MODE: 'code', // Default mode profile
+    AI_MEM_MODE: 'code', // Default mode profile
     // Token Economics
-    CLAUDE_MEM_CONTEXT_SHOW_READ_TOKENS: 'false',
-    CLAUDE_MEM_CONTEXT_SHOW_WORK_TOKENS: 'false',
-    CLAUDE_MEM_CONTEXT_SHOW_SAVINGS_AMOUNT: 'false',
-    CLAUDE_MEM_CONTEXT_SHOW_SAVINGS_PERCENT: 'true',
+    AI_MEM_CONTEXT_SHOW_READ_TOKENS: 'false',
+    AI_MEM_CONTEXT_SHOW_WORK_TOKENS: 'false',
+    AI_MEM_CONTEXT_SHOW_SAVINGS_AMOUNT: 'false',
+    AI_MEM_CONTEXT_SHOW_SAVINGS_PERCENT: 'true',
     // Observation Filtering
-    CLAUDE_MEM_CONTEXT_OBSERVATION_TYPES: DEFAULT_OBSERVATION_TYPES_STRING,
-    CLAUDE_MEM_CONTEXT_OBSERVATION_CONCEPTS: DEFAULT_OBSERVATION_CONCEPTS_STRING,
+    AI_MEM_CONTEXT_OBSERVATION_TYPES: DEFAULT_OBSERVATION_TYPES_STRING,
+    AI_MEM_CONTEXT_OBSERVATION_CONCEPTS: DEFAULT_OBSERVATION_CONCEPTS_STRING,
     // Display Configuration
-    CLAUDE_MEM_CONTEXT_FULL_COUNT: '0',
-    CLAUDE_MEM_CONTEXT_FULL_FIELD: 'narrative',
-    CLAUDE_MEM_CONTEXT_SESSION_COUNT: '10',
+    AI_MEM_CONTEXT_FULL_COUNT: '0',
+    AI_MEM_CONTEXT_FULL_FIELD: 'narrative',
+    AI_MEM_CONTEXT_SESSION_COUNT: '10',
     // Feature Toggles
-    CLAUDE_MEM_CONTEXT_SHOW_LAST_SUMMARY: 'true',
-    CLAUDE_MEM_CONTEXT_SHOW_LAST_MESSAGE: 'false',
-    CLAUDE_MEM_CONTEXT_SHOW_TERMINAL_OUTPUT: 'true',
-    CLAUDE_MEM_FOLDER_CLAUDEMD_ENABLED: 'false',
+    AI_MEM_CONTEXT_SHOW_LAST_SUMMARY: 'true',
+    AI_MEM_CONTEXT_SHOW_LAST_MESSAGE: 'false',
+    AI_MEM_CONTEXT_SHOW_TERMINAL_OUTPUT: 'true',
+    AI_MEM_FOLDER_CLAUDEMD_ENABLED: 'false',
     // Process Management
-    CLAUDE_MEM_MAX_CONCURRENT_AGENTS: '2',  // Max concurrent Claude SDK agent subprocesses
+    AI_MEM_MAX_CONCURRENT_AGENTS: '2',  // Max concurrent agent subprocesses
     // Exclusion Settings
-    CLAUDE_MEM_EXCLUDED_PROJECTS: '',  // Comma-separated glob patterns for excluded project paths
-    CLAUDE_MEM_FOLDER_MD_EXCLUDE: '[]',  // JSON array of folder paths to exclude from CLAUDE.md generation
+    AI_MEM_EXCLUDED_PROJECTS: '',  // Comma-separated glob patterns for excluded project paths
+    AI_MEM_FOLDER_MD_EXCLUDE: '[]',  // JSON array of folder paths to exclude from CLAUDE.md generation
     // Chroma Vector Database Configuration
-    CLAUDE_MEM_CHROMA_ENABLED: 'true',         // Set to 'false' to disable Chroma and use SQLite-only search
-    CLAUDE_MEM_CHROMA_MODE: 'local',           // 'local' uses persistent chroma-mcp via uvx, 'remote' connects to existing server
-    CLAUDE_MEM_CHROMA_HOST: '127.0.0.1',
-    CLAUDE_MEM_CHROMA_PORT: '8000',
-    CLAUDE_MEM_CHROMA_SSL: 'false',
-    // Future cloud support (claude-mem pro)
-    CLAUDE_MEM_CHROMA_API_KEY: '',
-    CLAUDE_MEM_CHROMA_TENANT: 'default_tenant',
-    CLAUDE_MEM_CHROMA_DATABASE: 'default_database',
+    AI_MEM_CHROMA_ENABLED: 'true',         // Set to 'false' to disable Chroma and use SQLite-only search
+    AI_MEM_CHROMA_MODE: 'local',           // 'local' uses persistent chroma-mcp via uvx, 'remote' connects to existing server
+    AI_MEM_CHROMA_HOST: '127.0.0.1',
+    AI_MEM_CHROMA_PORT: '8000',
+    AI_MEM_CHROMA_SSL: 'false',
+    // Future cloud support
+    AI_MEM_CHROMA_API_KEY: '',
+    AI_MEM_CHROMA_TENANT: 'default_tenant',
+    AI_MEM_CHROMA_DATABASE: 'default_database',
   };
 
   /**
@@ -184,7 +184,7 @@ export class SettingsDefaultsManager {
    *
    * Configuration Priority:
    *   1. Environment variables (highest priority)
-   *   2. Settings file (~/.claude-mem/settings.json)
+   *   2. Settings file (~/.claude/ai-mem-data/settings.json)
    *   3. Default values (lowest priority)
    */
   static loadFromFile(settingsPath: string): SettingsDefaults {
