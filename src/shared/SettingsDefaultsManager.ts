@@ -19,6 +19,7 @@ export interface SettingsDefaults {
   AI_MEM_WORKER_HOST: string;
   AI_MEM_SKIP_TOOLS: string;
   // AI Provider Configuration
+  AI_MEM_ANTHROPIC_API_KEY: string;  // Anthropic API key for observation extraction
   AI_MEM_PROVIDER: string;  // 'claude' | 'gemini' | 'openrouter'
   AI_MEM_CLAUDE_AUTH_METHOD: string;  // 'cli' | 'api' - how Claude provider authenticates
   AI_MEM_GEMINI_API_KEY: string;
@@ -81,6 +82,7 @@ export class SettingsDefaultsManager {
     AI_MEM_WORKER_HOST: '127.0.0.1',
     AI_MEM_SKIP_TOOLS: 'ListMcpResourcesTool,SlashCommand,Skill,TodoWrite,AskUserQuestion',
     // AI Provider Configuration
+    AI_MEM_ANTHROPIC_API_KEY: '',  // Empty by default, checked in settings then env
     AI_MEM_PROVIDER: 'claude',  // Default to Claude
     AI_MEM_CLAUDE_AUTH_METHOD: 'cli',  // Default to CLI subscription billing (not API key)
     AI_MEM_GEMINI_API_KEY: '',  // Empty by default, can be set via UI or env

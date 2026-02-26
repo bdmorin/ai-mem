@@ -7,6 +7,7 @@
  */
 
 import { loadAiMemEnv } from '../../shared/EnvManager.js';
+import { SettingsDefaultsManager } from '../../shared/SettingsDefaultsManager.js';
 import { logger } from '../../utils/logger.js';
 
 export interface AnthropicClientConfig {
@@ -38,14 +39,19 @@ export interface SendMessagesResponse {
  *
  * Priority:
  * 1. Explicit apiKey passed to constructor
- * 2. AI_MEM_ANTHROPIC_API_KEY from ~/.claude/ai-mem-data/.env
- * 3. ANTHROPIC_API_KEY from environment
- * 4. Error with clear instructions
+ * 2. AI_MEM_ANTHROPIC_API_KEY from settings.json
+ * 3. ANTHROPIC_API_KEY from ~/.claude/ai-mem-data/.env
+ * 4. ANTHROPIC_API_KEY from environment
+ * 5. Error with clear instructions
  */
-function resolveApiKey(explicitKey?: string): string {
+export function resolveApiKey(explicitKey?: string): string {
   if (explicitKey) return explicitKey;
 
-  // Check ai-mem's managed credentials
+  // Check ai-mem settings.json
+  const settingsKey = SettingsDefaultsManager.get('AI_MEM_ANTHROPIC_API_KEY');
+  if (settingsKey) return settingsKey;
+
+  // Check ai-mem's managed .env file
   const aiMemEnv = loadAiMemEnv();
   if (aiMemEnv.ANTHROPIC_API_KEY) return aiMemEnv.ANTHROPIC_API_KEY;
 
@@ -54,7 +60,7 @@ function resolveApiKey(explicitKey?: string): string {
 
   throw new Error(
     'ai-mem requires an Anthropic API key for observation extraction.\n' +
-    'Set ANTHROPIC_API_KEY in ~/.claude/ai-mem-data/.env\n' +
+    'Set AI_MEM_ANTHROPIC_API_KEY in ~/.claude/ai-mem-data/settings.json\n' +
     'or export ANTHROPIC_API_KEY in your shell.'
   );
 }

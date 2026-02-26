@@ -162,9 +162,20 @@ export function hasAnthropicApiKey(): boolean {
 }
 
 /**
- * Get auth method description for logging
+ * Get auth method description for logging.
+ * Checks settings.json, .env file, and environment variable in priority order.
  */
 export function getAuthMethodDescription(): string {
+  // Check settings.json first (requires lazy import to avoid circular dependency)
+  try {
+    const { SettingsDefaultsManager } = require('./SettingsDefaultsManager.js');
+    const settingsKey = SettingsDefaultsManager.get('AI_MEM_ANTHROPIC_API_KEY');
+    if (settingsKey) {
+      return 'API key (from settings.json)';
+    }
+  } catch {
+    // SettingsDefaultsManager not available (e.g., during bootstrap)
+  }
   if (hasAnthropicApiKey()) {
     return 'API key (from ~/.claude/ai-mem-data/.env)';
   }
