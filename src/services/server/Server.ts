@@ -279,7 +279,7 @@ export class Server {
           } finally {
             // CRITICAL: Exit the process after shutdown completes (or fails).
             // Without this, the daemon stays alive as a zombie — background tasks
-            // (backfill, reconnects) keep running and respawn chroma-mcp subprocesses.
+            // (background tasks) keep running.
             process.exit(0);
           }
         }, 100);

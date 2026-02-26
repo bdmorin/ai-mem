@@ -1,21 +1,22 @@
 /**
- * SearchOrchestrator - Coordinates search strategies and handles fallback logic
+ * SearchOrchestrator - Coordinates search strategies and handles routing
  *
  * This is the main entry point for search operations. It:
  * 1. Normalizes input parameters
- * 2. Selects the appropriate strategy
- * 3. Executes the search
- * 4. Handles fallbacks on failure
- * 5. Delegates to formatters for output
+ * 2. Routes to the appropriate search path
+ * 3. Delegates to formatters for output
+ *
+ * Observation text search uses the SQLite-native search module (fts5/vector/hybrid).
+ * Filter-only, session, and prompt searches use SQLiteSearchStrategy.
  */
 
+import type { Database } from 'bun:sqlite';
 import { SessionSearch } from '../../sqlite/SessionSearch.js';
 import { SessionStore } from '../../sqlite/SessionStore.js';
-import { ChromaSync } from '../../sync/ChromaSync.js';
 
-import { ChromaSearchStrategy } from './strategies/ChromaSearchStrategy.js';
+import { search as searchObservations } from '../../search/index.js';
+
 import { SQLiteSearchStrategy } from './strategies/SQLiteSearchStrategy.js';
-import { HybridSearchStrategy } from './strategies/HybridSearchStrategy.js';
 
 import { ResultFormatter } from './ResultFormatter.js';
 import { TimelineBuilder } from './TimelineBuilder.js';
@@ -42,24 +43,17 @@ interface NormalizedParams extends StrategySearchOptions {
 }
 
 export class SearchOrchestrator {
-  private chromaStrategy: ChromaSearchStrategy | null = null;
   private sqliteStrategy: SQLiteSearchStrategy;
-  private hybridStrategy: HybridSearchStrategy | null = null;
   private resultFormatter: ResultFormatter;
   private timelineBuilder: TimelineBuilder;
 
   constructor(
     private sessionSearch: SessionSearch,
     private sessionStore: SessionStore,
-    private chromaSync: ChromaSync | null
+    private db: Database | null
   ) {
     // Initialize strategies
     this.sqliteStrategy = new SQLiteSearchStrategy(sessionSearch);
-
-    if (chromaSync) {
-      this.chromaStrategy = new ChromaSearchStrategy(chromaSync, sessionStore);
-      this.hybridStrategy = new HybridSearchStrategy(chromaSync, sessionStore, sessionSearch);
-    }
 
     this.resultFormatter = new ResultFormatter();
     this.timelineBuilder = new TimelineBuilder();
@@ -72,111 +66,122 @@ export class SearchOrchestrator {
     const options = this.normalizeParams(args);
 
     // Decision tree for strategy selection
-    return await this.executeWithFallback(options);
+    return await this.executeSearch(options);
   }
 
   /**
-   * Execute search with fallback logic
+   * Execute search based on query type
    */
-  private async executeWithFallback(
+  private async executeSearch(
     options: NormalizedParams
   ): Promise<StrategySearchResult> {
-    // PATH 1: FILTER-ONLY (no query text) - Use SQLite
+    // PATH 1: FILTER-ONLY (no query text) - Use SQLite strategy
     if (!options.query) {
       logger.debug('SEARCH', 'Orchestrator: Filter-only query, using SQLite', {});
       return await this.sqliteStrategy.search(options);
     }
 
-    // PATH 2: CHROMA SEMANTIC SEARCH (query text + Chroma available)
-    if (this.chromaStrategy) {
-      logger.debug('SEARCH', 'Orchestrator: Using Chroma semantic search', {});
-      const result = await this.chromaStrategy.search(options);
+    // PATH 2: TEXT SEARCH - Use new SQLite-native search module
+    if (this.db) {
+      logger.debug('SEARCH', 'Orchestrator: Using SQLite-native search', {});
+      try {
+        const results = await searchObservations(this.db, {
+          query: options.query,
+          mode: 'hybrid',
+          limit: options.limit || SEARCH_CONSTANTS.DEFAULT_LIMIT,
+          offset: options.offset || 0,
+          project: options.project,
+          type: options.obsType,
+        });
 
-      // If Chroma succeeded (even with 0 results), return
-      if (result.usedChroma) {
-        return result;
+        // Convert SearchResult[] from new module to ObservationSearchResult[]
+        // The new module returns lightweight results (id, score, title, type, project, created_at_epoch).
+        // Hydrate from SessionStore if needed by callers, but for now map to the expected shape.
+        const observations: ObservationSearchResult[] = results.map(r => ({
+          id: r.id,
+          memory_session_id: '',
+          project: r.project || '',
+          text: '',
+          type: r.type || '',
+          title: r.title || '',
+          subtitle: '',
+          facts: '[]',
+          narrative: '',
+          concepts: '[]',
+          files_read: '[]',
+          files_modified: '[]',
+          prompt_number: 0,
+          discovery_tokens: 0,
+          created_at: '',
+          created_at_epoch: r.created_at_epoch || 0,
+        }));
+
+        return {
+          results: { observations, sessions: [], prompts: [] },
+          fellBack: false,
+          strategy: 'sqlite'
+        };
+      } catch (error) {
+        logger.error('SEARCH', 'Orchestrator: SQLite-native search failed', {}, error as Error);
+        // Fall back to filter-only
+        const fallbackResult = await this.sqliteStrategy.search({
+          ...options,
+          query: undefined
+        });
+        return {
+          ...fallbackResult,
+          fellBack: true
+        };
       }
-
-      // Chroma failed - fall back to SQLite for filter-only
-      logger.debug('SEARCH', 'Orchestrator: Chroma failed, falling back to SQLite', {});
-      const fallbackResult = await this.sqliteStrategy.search({
-        ...options,
-        query: undefined // Remove query for SQLite fallback
-      });
-
-      return {
-        ...fallbackResult,
-        fellBack: true
-      };
     }
 
-    // PATH 3: No Chroma available
-    logger.debug('SEARCH', 'Orchestrator: Chroma not available', {});
+    // PATH 3: No database available
+    logger.debug('SEARCH', 'Orchestrator: No database available', {});
     return {
       results: { observations: [], sessions: [], prompts: [] },
-      usedChroma: false,
       fellBack: false,
       strategy: 'sqlite'
     };
   }
 
   /**
-   * Find by concept with hybrid search
+   * Find by concept
    */
   async findByConcept(concept: string, args: any): Promise<StrategySearchResult> {
     const options = this.normalizeParams(args);
 
-    if (this.hybridStrategy) {
-      return await this.hybridStrategy.findByConcept(concept, options);
-    }
-
-    // Fallback to SQLite
     const results = this.sqliteStrategy.findByConcept(concept, options);
     return {
       results: { observations: results, sessions: [], prompts: [] },
-      usedChroma: false,
       fellBack: false,
       strategy: 'sqlite'
     };
   }
 
   /**
-   * Find by type with hybrid search
+   * Find by type
    */
   async findByType(type: string | string[], args: any): Promise<StrategySearchResult> {
     const options = this.normalizeParams(args);
 
-    if (this.hybridStrategy) {
-      return await this.hybridStrategy.findByType(type, options);
-    }
-
-    // Fallback to SQLite
     const results = this.sqliteStrategy.findByType(type, options);
     return {
       results: { observations: results, sessions: [], prompts: [] },
-      usedChroma: false,
       fellBack: false,
       strategy: 'sqlite'
     };
   }
 
   /**
-   * Find by file with hybrid search
+   * Find by file
    */
   async findByFile(filePath: string, args: any): Promise<{
     observations: ObservationSearchResult[];
     sessions: any[];
-    usedChroma: boolean;
   }> {
     const options = this.normalizeParams(args);
 
-    if (this.hybridStrategy) {
-      return await this.hybridStrategy.findByFile(filePath, options);
-    }
-
-    // Fallback to SQLite
-    const results = this.sqliteStrategy.findByFile(filePath, options);
-    return { ...results, usedChroma: false };
+    return this.sqliteStrategy.findByFile(filePath, options);
   }
 
   /**
@@ -214,9 +219,9 @@ export class SearchOrchestrator {
   formatSearchResults(
     results: SearchResults,
     query: string,
-    chromaFailed: boolean = false
+    searchFailed: boolean = false
   ): string {
-    return this.resultFormatter.formatSearchResults(results, query, chromaFailed);
+    return this.resultFormatter.formatSearchResults(results, query, searchFailed);
   }
 
   /**
@@ -279,12 +284,5 @@ export class SearchOrchestrator {
     }
 
     return normalized;
-  }
-
-  /**
-   * Check if Chroma is available
-   */
-  isChromaAvailable(): boolean {
-    return !!this.chromaSync;
   }
 }

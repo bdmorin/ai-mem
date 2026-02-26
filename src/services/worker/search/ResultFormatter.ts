@@ -25,15 +25,15 @@ export class ResultFormatter {
   formatSearchResults(
     results: SearchResults,
     query: string,
-    chromaFailed: boolean = false
+    searchFailed: boolean = false
   ): string {
     const totalResults = results.observations.length +
       results.sessions.length +
       results.prompts.length;
 
     if (totalResults === 0) {
-      if (chromaFailed) {
-        return this.formatChromaFailureMessage();
+      if (searchFailed) {
+        return this.formatSearchFailureMessage();
       }
       return `No results found matching "${query}"`;
     }
@@ -270,14 +270,12 @@ export class ResultFormatter {
   }
 
   /**
-   * Format Chroma failure message
+   * Format search failure message
    */
-  private formatChromaFailureMessage(): string {
+  private formatSearchFailureMessage(): string {
     return `Vector search failed - semantic search unavailable.
 
-To enable semantic search:
-1. Install uv: https://docs.astral.sh/uv/getting-started/installation/
-2. Restart the worker: npm run worker:restart
+Try restarting the worker: npm run worker:restart
 
 Note: You can still use filter-only searches (date ranges, types, files) without a query term.`;
   }

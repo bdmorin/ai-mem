@@ -34,7 +34,6 @@ export interface SettingsDefaults {
   // System Configuration
   AI_MEM_DATA_DIR: string;
   AI_MEM_LOG_LEVEL: string;
-  AI_MEM_PYTHON_VERSION: string;
   CLAUDE_CODE_PATH: string;
   AI_MEM_MODE: string;
   // Token Economics
@@ -59,16 +58,9 @@ export interface SettingsDefaults {
   // Exclusion Settings
   AI_MEM_EXCLUDED_PROJECTS: string;  // Comma-separated glob patterns for excluded project paths
   AI_MEM_FOLDER_MD_EXCLUDE: string;  // JSON array of folder paths to exclude from CLAUDE.md generation
-  // Chroma Vector Database Configuration
-  AI_MEM_CHROMA_ENABLED: string;   // 'true' | 'false' - set to 'false' for SQLite-only mode
-  AI_MEM_CHROMA_MODE: string;      // 'local' | 'remote'
-  AI_MEM_CHROMA_HOST: string;
-  AI_MEM_CHROMA_PORT: string;
-  AI_MEM_CHROMA_SSL: string;
-  // Future cloud support
-  AI_MEM_CHROMA_API_KEY: string;
-  AI_MEM_CHROMA_TENANT: string;
-  AI_MEM_CHROMA_DATABASE: string;
+  // Embedding Configuration
+  AI_MEM_EMBEDDING_MODEL: string;       // Transformer model for generating embeddings
+  AI_MEM_EMBEDDING_DIMENSIONS: string;  // Embedding vector dimensions (must match model output)
 }
 
 export class SettingsDefaultsManager {
@@ -97,7 +89,6 @@ export class SettingsDefaultsManager {
     // System Configuration
     AI_MEM_DATA_DIR: join(homedir(), '.claude', 'ai-mem-data'),
     AI_MEM_LOG_LEVEL: 'INFO',
-    AI_MEM_PYTHON_VERSION: '3.13',
     CLAUDE_CODE_PATH: '', // Empty means auto-detect via 'which claude'
     AI_MEM_MODE: 'code', // Default mode profile
     // Token Economics
@@ -122,16 +113,9 @@ export class SettingsDefaultsManager {
     // Exclusion Settings
     AI_MEM_EXCLUDED_PROJECTS: '',  // Comma-separated glob patterns for excluded project paths
     AI_MEM_FOLDER_MD_EXCLUDE: '[]',  // JSON array of folder paths to exclude from CLAUDE.md generation
-    // Chroma Vector Database Configuration
-    AI_MEM_CHROMA_ENABLED: 'true',         // Set to 'false' to disable Chroma and use SQLite-only search
-    AI_MEM_CHROMA_MODE: 'local',           // 'local' uses persistent chroma-mcp via uvx, 'remote' connects to existing server
-    AI_MEM_CHROMA_HOST: '127.0.0.1',
-    AI_MEM_CHROMA_PORT: '8000',
-    AI_MEM_CHROMA_SSL: 'false',
-    // Future cloud support
-    AI_MEM_CHROMA_API_KEY: '',
-    AI_MEM_CHROMA_TENANT: 'default_tenant',
-    AI_MEM_CHROMA_DATABASE: 'default_database',
+    // Embedding Configuration
+    AI_MEM_EMBEDDING_MODEL: 'Xenova/all-MiniLM-L6-v2',  // Transformer model for generating embeddings
+    AI_MEM_EMBEDDING_DIMENSIONS: '384',  // Embedding vector dimensions (must match model output)
   };
 
   /**

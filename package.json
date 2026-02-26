@@ -61,6 +61,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
+    "@huggingface/transformers": "^3.8.1",
     "@modelcontextprotocol/sdk": "^1.25.1",
     "ansi-to-html": "^0.7.2",
     "dompurify": "^3.3.1",

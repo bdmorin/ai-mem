@@ -41,6 +41,23 @@ mock.module('../../../src/services/domain/ModeManager.js', () => ({
   },
 }));
 
+// Mock the new search module
+const mockSearchResults = mock(() => Promise.resolve([
+  {
+    id: 1,
+    score: 0.85,
+    mode: 'hybrid' as const,
+    title: 'Test Decision',
+    type: 'decision',
+    project: 'test-project',
+    created_at_epoch: Date.now() - 1000 * 60 * 60 * 24,
+  }
+]));
+
+mock.module('../../../src/services/search/index.js', () => ({
+  search: mockSearchResults,
+}));
+
 import { SearchOrchestrator } from '../../../src/services/worker/search/SearchOrchestrator.js';
 import type { ObservationSearchResult, SessionSummarySearchResult, UserPromptSearchResult } from '../../../src/services/worker/search/types.js';
 
@@ -95,7 +112,7 @@ describe('SearchOrchestrator', () => {
   let orchestrator: SearchOrchestrator;
   let mockSessionSearch: any;
   let mockSessionStore: any;
-  let mockChromaSync: any;
+  let mockDb: any;
 
   beforeEach(() => {
     mockSessionSearch = {
@@ -113,18 +130,15 @@ describe('SearchOrchestrator', () => {
       getUserPromptsByIds: mock(() => [mockPrompt])
     };
 
-    mockChromaSync = {
-      queryChroma: mock(() => Promise.resolve({
-        ids: [1],
-        distances: [0.1],
-        metadatas: [{ sqlite_id: 1, doc_type: 'observation', created_at_epoch: Date.now() - 1000 }]
-      }))
-    };
+    mockDb = {}; // Placeholder db object (the search module is mocked)
+
+    // Reset the mock search function
+    mockSearchResults.mockClear();
   });
 
-  describe('with Chroma available', () => {
+  describe('with database available', () => {
     beforeEach(() => {
-      orchestrator = new SearchOrchestrator(mockSessionSearch, mockSessionStore, mockChromaSync);
+      orchestrator = new SearchOrchestrator(mockSessionSearch, mockSessionStore, mockDb);
     });
 
     describe('search', () => {
@@ -135,31 +149,29 @@ describe('SearchOrchestrator', () => {
         });
 
         expect(result.strategy).toBe('sqlite');
-        expect(result.usedChroma).toBe(false);
+        expect(result.fellBack).toBe(false);
         expect(mockSessionSearch.searchObservations).toHaveBeenCalled();
-        expect(mockChromaSync.queryChroma).not.toHaveBeenCalled();
       });
 
-      it('should select Chroma strategy for query-only', async () => {
+      it('should use SQLite-native search for text queries', async () => {
         const result = await orchestrator.search({
           query: 'semantic search query'
         });
 
-        expect(result.strategy).toBe('chroma');
-        expect(result.usedChroma).toBe(true);
-        expect(mockChromaSync.queryChroma).toHaveBeenCalled();
+        expect(result.strategy).toBe('sqlite');
+        expect(result.fellBack).toBe(false);
+        expect(mockSearchResults).toHaveBeenCalled();
+        expect(result.results.observations.length).toBeGreaterThanOrEqual(1);
       });
 
-      it('should fall back to SQLite when Chroma fails', async () => {
-        mockChromaSync.queryChroma = mock(() => Promise.reject(new Error('Chroma unavailable')));
+      it('should fall back to filter-only when search module fails', async () => {
+        mockSearchResults.mockImplementation(() => Promise.reject(new Error('Search failed')));
 
         const result = await orchestrator.search({
           query: 'test query'
         });
 
-        // Chroma failed, should have fallen back
         expect(result.fellBack).toBe(true);
-        expect(result.usedChroma).toBe(false);
       });
 
       it('should normalize comma-separated concepts', async () => {
@@ -168,7 +180,6 @@ describe('SearchOrchestrator', () => {
           limit: 10
         });
 
-        // Should be parsed into array internally
         const callArgs = mockSessionSearch.searchObservations.mock.calls[0];
         expect(callArgs[1].concepts).toEqual(['concept1', 'concept2', 'concept3']);
       });
@@ -209,14 +220,14 @@ describe('SearchOrchestrator', () => {
     });
 
     describe('findByConcept', () => {
-      it('should use hybrid strategy when Chroma available', async () => {
+      it('should use SQLite strategy', async () => {
         const result = await orchestrator.findByConcept('test-concept', {
           limit: 10
         });
 
-        // Hybrid strategy should be used
+        expect(result.fellBack).toBe(false);
+        expect(result.strategy).toBe('sqlite');
         expect(mockSessionSearch.findByConcept).toHaveBeenCalled();
-        expect(mockChromaSync.queryChroma).toHaveBeenCalled();
       });
 
       it('should return observations matching concept', async () => {
@@ -227,9 +238,11 @@ describe('SearchOrchestrator', () => {
     });
 
     describe('findByType', () => {
-      it('should use hybrid strategy', async () => {
+      it('should use SQLite strategy', async () => {
         const result = await orchestrator.findByType('decision', {});
 
+        expect(result.fellBack).toBe(false);
+        expect(result.strategy).toBe('sqlite');
         expect(mockSessionSearch.findByType).toHaveBeenCalled();
       });
 
@@ -248,16 +261,11 @@ describe('SearchOrchestrator', () => {
         expect(mockSessionSearch.findByFile).toHaveBeenCalled();
       });
 
-      it('should include usedChroma in result', async () => {
+      it('should return observations and sessions without extra metadata', async () => {
         const result = await orchestrator.findByFile('/path/to/file.ts', {});
 
-        expect(typeof result.usedChroma).toBe('boolean');
-      });
-    });
-
-    describe('isChromaAvailable', () => {
-      it('should return true when Chroma is available', () => {
-        expect(orchestrator.isChromaAvailable()).toBe(true);
+        expect(result).toHaveProperty('observations');
+        expect(result).toHaveProperty('sessions');
       });
     });
 
@@ -287,7 +295,7 @@ describe('SearchOrchestrator', () => {
         expect(formatted).toContain('No results found');
       });
 
-      it('should indicate Chroma failure when chromaFailed is true', () => {
+      it('should indicate failure when searchFailed is true', () => {
         const results = {
           observations: [],
           sessions: [],
@@ -301,26 +309,19 @@ describe('SearchOrchestrator', () => {
     });
   });
 
-  describe('without Chroma (null)', () => {
+  describe('without database (null)', () => {
     beforeEach(() => {
       orchestrator = new SearchOrchestrator(mockSessionSearch, mockSessionStore, null);
     });
 
-    describe('isChromaAvailable', () => {
-      it('should return false when Chroma is null', () => {
-        expect(orchestrator.isChromaAvailable()).toBe(false);
-      });
-    });
-
     describe('search', () => {
-      it('should return empty results for query search without Chroma', async () => {
+      it('should return empty results for query search without database', async () => {
         const result = await orchestrator.search({
           query: 'semantic query'
         });
 
-        // No Chroma available, can't do semantic search
         expect(result.results.observations).toHaveLength(0);
-        expect(result.usedChroma).toBe(false);
+        expect(result.fellBack).toBe(false);
       });
 
       it('should still work for filter-only queries', async () => {
@@ -334,29 +335,30 @@ describe('SearchOrchestrator', () => {
     });
 
     describe('findByConcept', () => {
-      it('should fall back to SQLite-only', async () => {
+      it('should use SQLite strategy', async () => {
         const result = await orchestrator.findByConcept('test-concept', {});
 
-        expect(result.usedChroma).toBe(false);
+        expect(result.fellBack).toBe(false);
         expect(result.strategy).toBe('sqlite');
         expect(mockSessionSearch.findByConcept).toHaveBeenCalled();
       });
     });
 
     describe('findByType', () => {
-      it('should fall back to SQLite-only', async () => {
+      it('should use SQLite strategy', async () => {
         const result = await orchestrator.findByType('decision', {});
 
-        expect(result.usedChroma).toBe(false);
+        expect(result.fellBack).toBe(false);
         expect(result.strategy).toBe('sqlite');
       });
     });
 
     describe('findByFile', () => {
-      it('should fall back to SQLite-only', async () => {
+      it('should use SQLite strategy', async () => {
         const result = await orchestrator.findByFile('/path/to/file.ts', {});
 
-        expect(result.usedChroma).toBe(false);
+        expect(result).toHaveProperty('observations');
+        expect(result).toHaveProperty('sessions');
         expect(mockSessionSearch.findByFile).toHaveBeenCalled();
       });
     });

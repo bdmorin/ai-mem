@@ -5,21 +5,17 @@
  * - Manage single database connection for worker lifetime
  * - Provide centralized access to SessionStore and SessionSearch
  * - High-level database operations
- * - ChromaSync integration
  */
 
+import { Database } from 'bun:sqlite';
 import { SessionStore } from '../sqlite/SessionStore.js';
 import { SessionSearch } from '../sqlite/SessionSearch.js';
-import { ChromaSync } from '../sync/ChromaSync.js';
-import { SettingsDefaultsManager } from '../../shared/SettingsDefaultsManager.js';
-import { USER_SETTINGS_PATH } from '../../shared/paths.js';
 import { logger } from '../../utils/logger.js';
 import type { DBSession } from '../worker-types.js';
 
 export class DatabaseManager {
   private sessionStore: SessionStore | null = null;
   private sessionSearch: SessionSearch | null = null;
-  private chromaSync: ChromaSync | null = null;
 
   /**
    * Initialize database connection (once, stays open)
@@ -29,15 +25,6 @@ export class DatabaseManager {
     this.sessionStore = new SessionStore();
     this.sessionSearch = new SessionSearch();
 
-    // Initialize ChromaSync only if Chroma is enabled (SQLite-only fallback when disabled)
-    const settings = SettingsDefaultsManager.loadFromFile(USER_SETTINGS_PATH);
-    const chromaEnabled = settings.AI_MEM_CHROMA_ENABLED !== 'false';
-    if (chromaEnabled) {
-      this.chromaSync = new ChromaSync('ai-mem');
-    } else {
-      logger.info('DB', 'Chroma disabled via AI_MEM_CHROMA_ENABLED=false, using SQLite-only search');
-    }
-
     logger.info('DB', 'Database initialized');
   }
 
@@ -45,12 +32,6 @@ export class DatabaseManager {
    * Close database connection and cleanup all resources
    */
   async close(): Promise<void> {
-    // Close ChromaSync first (MCP connection lifecycle managed by ChromaMcpManager)
-    if (this.chromaSync) {
-      await this.chromaSync.close();
-      this.chromaSync = null;
-    }
-
     if (this.sessionStore) {
       this.sessionStore.close();
       this.sessionStore = null;
@@ -83,10 +64,13 @@ export class DatabaseManager {
   }
 
   /**
-   * Get ChromaSync instance (returns null if Chroma is disabled)
+   * Get raw SQLite database handle (needed by SearchOrchestrator)
    */
-  getChromaSync(): ChromaSync | null {
-    return this.chromaSync;
+  getDatabase(): Database {
+    if (!this.sessionStore) {
+      throw new Error('Database not initialized');
+    }
+    return this.sessionStore.db;
   }
 
   // REMOVED: cleanupOrphanedSessions - violates "EVERYTHING SHOULD SAVE ALWAYS"

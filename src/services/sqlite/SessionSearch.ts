@@ -17,7 +17,6 @@ import {
 /**
  * Search interface for session-based memory
  * Provides filter-only structured queries for sessions, observations, and user prompts
- * Vector search is handled by ChromaDB - this class only supports filtering without query text
  */
 export class SessionSearch {
   private db: Database;
@@ -35,22 +34,13 @@ export class SessionSearch {
   }
 
   /**
-   * Ensure FTS5 tables exist (backward compatibility only - no longer used for search)
+   * Ensure FTS5 tables exist for full-text search support
    *
-   * FTS5 tables are maintained for backward compatibility but not used for search.
-   * Vector search (Chroma) is now the primary search mechanism.
-   *
-   * Retention Rationale:
-   * - Prevents breaking existing installations with FTS5 tables
-   * - Allows graceful migration path for users
-   * - Tables maintained but search paths removed
-   * - Triggers still fire to keep tables synchronized
+   * FTS5 tables are used by the SQLite-native search module for text search.
    *
    * FTS5 may be unavailable on some platforms (e.g., Bun on Windows #791).
-   * When unavailable, we skip FTS table creation — search falls back to
-   * ChromaDB (vector) and LIKE queries (structured filters) which are unaffected.
-   *
-   * TODO: Remove FTS5 infrastructure in future major version (v7.0.0)
+   * When unavailable, we skip FTS table creation -- search falls back to
+   * LIKE queries (structured filters).
    */
   private ensureFTSTables(): void {
     // Check if FTS tables already exist
@@ -65,7 +55,7 @@ export class SessionSearch {
     // Runtime check: verify FTS5 is available before attempting to create tables.
     // bun:sqlite on Windows may not include the FTS5 extension (#791).
     if (!this.isFts5Available()) {
-      logger.warn('DB', 'FTS5 not available on this platform — skipping FTS table creation (search uses ChromaDB)');
+      logger.warn('DB', 'FTS5 not available on this platform — skipping FTS table creation');
       return;
     }
 
@@ -157,7 +147,7 @@ export class SessionSearch {
       logger.info('DB', 'FTS5 tables created successfully');
     } catch (error) {
       // FTS5 creation failed at runtime despite probe succeeding — degrade gracefully
-      logger.warn('DB', 'FTS5 table creation failed — search will use ChromaDB and LIKE queries', {}, error as Error);
+      logger.warn('DB', 'FTS5 table creation failed — search will use LIKE queries', {}, error as Error);
     }
   }
 
@@ -269,14 +259,14 @@ export class SessionSearch {
 
   /**
    * Search observations using filter-only direct SQLite query.
-   * Vector search is handled by ChromaDB - this only supports filtering without query text.
+   * Text search is handled by the SQLite-native search module.
    */
   searchObservations(query: string | undefined, options: SearchOptions = {}): ObservationSearchResult[] {
     const params: any[] = [];
     const { limit = 50, offset = 0, orderBy = 'relevance', ...filters } = options;
 
     // FILTER-ONLY PATH: When no query text, query table directly
-    // This enables date filtering which Chroma cannot do (requires direct SQLite access)
+    // Direct SQLite date filtering
     if (!query) {
       const filterClause = this.buildFilterClause(filters, params, 'o');
       if (!filterClause) {
@@ -297,15 +287,15 @@ export class SessionSearch {
       return this.db.prepare(sql).all(...params) as ObservationSearchResult[];
     }
 
-    // Vector search with query text should be handled by ChromaDB
+    // Text search is handled by the SQLite-native search module
     // This method only supports filter-only queries (query=undefined)
-    logger.warn('DB', 'Text search not supported - use ChromaDB for vector search');
+    logger.warn('DB', 'Text search not supported in this method - use the search module');
     return [];
   }
 
   /**
    * Search session summaries using filter-only direct SQLite query.
-   * Vector search is handled by ChromaDB - this only supports filtering without query text.
+   * Text search is handled by the SQLite-native search module.
    */
   searchSessions(query: string | undefined, options: SearchOptions = {}): SessionSummarySearchResult[] {
     const params: any[] = [];
@@ -336,9 +326,9 @@ export class SessionSearch {
       return this.db.prepare(sql).all(...params) as SessionSummarySearchResult[];
     }
 
-    // Vector search with query text should be handled by ChromaDB
+    // Text search is handled by the SQLite-native search module
     // This method only supports filter-only queries (query=undefined)
-    logger.warn('DB', 'Text search not supported - use ChromaDB for vector search');
+    logger.warn('DB', 'Text search not supported in this method - use the search module');
     return [];
   }
 
@@ -521,7 +511,7 @@ export class SessionSearch {
 
   /**
    * Search user prompts using filter-only direct SQLite query.
-   * Vector search is handled by ChromaDB - this only supports filtering without query text.
+   * Text search is handled by the SQLite-native search module.
    */
   searchUserPrompts(query: string | undefined, options: SearchOptions = {}): UserPromptSearchResult[] {
     const params: any[] = [];
@@ -572,9 +562,9 @@ export class SessionSearch {
       return this.db.prepare(sql).all(...params) as UserPromptSearchResult[];
     }
 
-    // Vector search with query text should be handled by ChromaDB
+    // Text search is handled by the SQLite-native search module
     // This method only supports filter-only queries (query=undefined)
-    logger.warn('DB', 'Text search not supported - use ChromaDB for vector search');
+    logger.warn('DB', 'Text search not supported in this method - use the search module');
     return [];
   }
 

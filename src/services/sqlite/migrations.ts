@@ -373,12 +373,12 @@ export const migration006: Migration = {
   version: 6,
   up: (db: Database) => {
     // FTS5 may be unavailable on some platforms (e.g., Bun on Windows #791).
-    // Probe before creating tables — search falls back to ChromaDB when unavailable.
+    // Probe before creating tables — search falls back to LIKE queries when unavailable.
     try {
       db.run('CREATE VIRTUAL TABLE _fts5_probe USING fts5(test_column)');
       db.run('DROP TABLE _fts5_probe');
     } catch {
-      console.log('⚠️  FTS5 not available on this platform — skipping FTS migration (search uses ChromaDB)');
+      console.log('⚠️  FTS5 not available on this platform — skipping FTS migration');
       return;
     }
 

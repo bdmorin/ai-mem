@@ -27,7 +27,6 @@ const PID_FILE = path.join(DATA_DIR, 'worker.pid');
 const ORPHAN_PROCESS_PATTERNS = [
   'mcp-server.cjs',    // Main MCP server process
   'worker-service.cjs', // Background worker daemon
-  'chroma-mcp'          // ChromaDB MCP subprocess
 ];
 
 // Only kill processes older than this to avoid killing the current session
@@ -302,7 +301,7 @@ export function parseElapsedTime(etime: string): number {
 /**
  * Clean up orphaned ai-mem processes from previous worker sessions
  *
- * Targets mcp-server.cjs, worker-service.cjs, and chroma-mcp processes
+ * Targets mcp-server.cjs and worker-service.cjs processes
  * that survived a previous daemon crash. Only kills processes older than
  * ORPHAN_MAX_AGE_MINUTES to avoid killing the current session.
  *
@@ -430,7 +429,7 @@ export async function cleanupOrphanedProcesses(): Promise<void> {
 
 // Patterns that should be killed immediately at startup (no age gate)
 // These are child processes that should not outlive their parent worker
-const AGGRESSIVE_CLEANUP_PATTERNS = ['worker-service.cjs', 'chroma-mcp'];
+const AGGRESSIVE_CLEANUP_PATTERNS = ['worker-service.cjs'];
 
 // Patterns that keep the age-gated threshold (may be legitimately running)
 const AGE_GATED_CLEANUP_PATTERNS = ['mcp-server.cjs'];
@@ -439,7 +438,7 @@ const AGE_GATED_CLEANUP_PATTERNS = ['mcp-server.cjs'];
  * Aggressive startup cleanup for orphaned ai-mem processes.
  *
  * Unlike cleanupOrphanedProcesses() which age-gates everything at 30 minutes,
- * this function kills worker-service.cjs and chroma-mcp processes immediately
+ * this function kills worker-service.cjs processes immediately
  * (they should not outlive their parent worker). Only mcp-server.cjs keeps
  * the age threshold since it may be legitimately running.
  *
@@ -574,11 +573,11 @@ export async function aggressiveStartupCleanup(): Promise<void> {
 const CHROMA_MIGRATION_MARKER_FILENAME = '.chroma-cleaned-v10.3';
 
 /**
- * One-time chroma data wipe for users upgrading from versions with duplicate
- * worker bugs that could corrupt chroma data. Since chroma is always rebuildable
- * from SQLite (via backfillAllProjects), this is safe.
+ * Legacy one-time chroma data wipe for users upgrading from pre-v10.3.
+ * Removes leftover ~/.claude/ai-mem-data/chroma/ directory if present.
+ * Chroma has been fully removed; this cleanup ensures no stale data remains.
  *
- * Checks for a marker file. If absent, wipes ~/.claude/ai-mem-data/chroma/ and writes
+ * Checks for a marker file. If absent, wipes the chroma directory and writes
  * the marker. If present, skips. Idempotent.
  *
  * @param dataDirectory - Override for DATA_DIR (used in tests)

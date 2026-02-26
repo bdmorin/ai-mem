@@ -115,7 +115,6 @@ describe('SQLiteSearchStrategy', () => {
 
       const result = await strategy.search(options);
 
-      expect(result.usedChroma).toBe(false);
       expect(result.fellBack).toBe(false);
       expect(result.strategy).toBe('sqlite');
       expect(result.results.observations).toHaveLength(1);
@@ -224,7 +223,6 @@ describe('SQLiteSearchStrategy', () => {
       expect(result.results.observations).toHaveLength(0);
       expect(result.results.sessions).toHaveLength(0);
       expect(result.results.prompts).toHaveLength(0);
-      expect(result.usedChroma).toBe(false);
     });
   });
 

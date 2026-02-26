@@ -50,7 +50,7 @@ export function getSummaryById(
 }
 
 /**
- * Get session summaries by IDs (for hybrid Chroma search)
+ * Get session summaries by IDs
  * Returns summaries in specified temporal order
  *
  * @param db - Database instance

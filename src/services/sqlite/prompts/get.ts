@@ -40,7 +40,7 @@ export function getPromptNumberFromUserPrompts(db: Database, contentSessionId: s
 
 /**
  * Get latest user prompt with session info for a Claude session
- * Used for syncing prompts to Chroma during session initialization
+ * Get latest user prompt with session info for a Claude session
  */
 export function getLatestUserPrompt(
   db: Database,
@@ -134,7 +134,7 @@ export function getPromptsByIds(db: Database, ids: number[]): PromptWithProject[
 }
 
 /**
- * Get user prompts by IDs (for hybrid Chroma search)
+ * Get user prompts by IDs
  * Returns prompts in specified temporal order with optional project filter
  */
 export function getUserPromptsByIds(

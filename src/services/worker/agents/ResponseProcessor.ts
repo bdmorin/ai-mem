@@ -4,7 +4,7 @@
  * Responsibility:
  * - Parse observations and summaries from agent responses
  * - Execute atomic database transactions
- * - Orchestrate Chroma sync (fire-and-forget)
+ * - Generate embeddings for observation search (fire-and-forget)
  * - Broadcast to SSE clients
  * - Clean up processed messages
  *
@@ -17,6 +17,7 @@ import { updateFolderClaudeMdFiles } from '../../../utils/claude-md-utils.js';
 import { getWorkerPort } from '../../../shared/worker-utils.js';
 import { SettingsDefaultsManager } from '../../../shared/SettingsDefaultsManager.js';
 import { USER_SETTINGS_PATH } from '../../../shared/paths.js';
+import { embed, serializeEmbedding } from '../../search/embeddings.js';
 import type { ActiveSession } from '../../worker-types.js';
 import type { DatabaseManager } from '../DatabaseManager.js';
 import type { SessionManager } from '../SessionManager.js';
@@ -25,13 +26,13 @@ import { broadcastObservation, broadcastSummary } from './ObservationBroadcaster
 import { cleanupProcessedMessages } from './SessionCleanupHelper.js';
 
 /**
- * Process agent response text (parse XML, save to database, sync to Chroma, broadcast SSE)
+ * Process agent response text (parse XML, save to database, generate embeddings, broadcast SSE)
  *
  * This is the unified response processor that handles:
  * 1. Adding response to conversation history (for provider interop)
  * 2. Parsing observations and summaries from XML
  * 3. Atomic database transaction to store observations + summary
- * 4. Async Chroma sync (fire-and-forget, failures are non-critical)
+ * 4. Async embedding generation (fire-and-forget, FTS5 search still works without it)
  * 5. SSE broadcast to web UI clients
  * 6. Session cleanup
  *
@@ -174,7 +175,7 @@ function normalizeSummaryForStorage(summary: ParsedSummary | null): {
 }
 
 /**
- * Sync observations to Chroma and broadcast to SSE clients
+ * Generate embeddings for observations and broadcast to SSE clients
  */
 async function syncAndBroadcastObservations(
   observations: ParsedObservation[],
@@ -189,27 +190,20 @@ async function syncAndBroadcastObservations(
   for (let i = 0; i < observations.length; i++) {
     const obsId = result.observationIds[i];
     const obs = observations[i];
-    const chromaStart = Date.now();
 
-    // Sync to Chroma (fire-and-forget, skipped if Chroma is disabled)
-    dbManager.getChromaSync()?.syncObservation(
-      obsId,
-      session.contentSessionId,
-      session.project,
-      obs,
-      session.lastPromptNumber,
-      result.createdAtEpoch,
-      discoveryTokens
-    ).then(() => {
-      const chromaDuration = Date.now() - chromaStart;
-      logger.debug('CHROMA', 'Observation synced', {
+    // Generate embedding and store (fire-and-forget, FTS5 search still works without it)
+    embed(`${obs.title} ${obs.narrative || ''}`).then(embedding => {
+      const embBlob = serializeEmbedding(embedding);
+      dbManager.getSessionStore().db.prepare(
+        'INSERT OR REPLACE INTO observation_embeddings (observation_id, embedding, created_at_epoch) VALUES (?, ?, ?)'
+      ).run(obsId, embBlob, Date.now());
+      logger.debug('EMBED', 'Observation embedding stored', {
         obsId,
-        duration: `${chromaDuration}ms`,
         type: obs.type,
         title: obs.title || '(untitled)'
       });
     }).catch((error) => {
-      logger.error('CHROMA', `${agentName} chroma sync failed, continuing without vector search`, {
+      logger.error('EMBED', `${agentName} embedding generation failed, FTS5 search still works`, {
         obsId,
         type: obs.type,
         title: obs.title || '(untitled)'
@@ -266,46 +260,21 @@ async function syncAndBroadcastObservations(
 }
 
 /**
- * Sync summary to Chroma and broadcast to SSE clients
+ * Broadcast summary to SSE clients (no embedding -- only observations are embedded)
  */
 async function syncAndBroadcastSummary(
   summary: ParsedSummary | null,
   summaryForStore: { request: string; investigated: string; learned: string; completed: string; next_steps: string; notes: string | null } | null,
   result: StorageResult,
   session: ActiveSession,
-  dbManager: DatabaseManager,
+  _dbManager: DatabaseManager,
   worker: WorkerRef | undefined,
-  discoveryTokens: number,
-  agentName: string
+  _discoveryTokens: number,
+  _agentName: string
 ): Promise<void> {
   if (!summaryForStore || !result.summaryId) {
     return;
   }
-
-  const chromaStart = Date.now();
-
-  // Sync to Chroma (fire-and-forget, skipped if Chroma is disabled)
-  dbManager.getChromaSync()?.syncSummary(
-    result.summaryId,
-    session.contentSessionId,
-    session.project,
-    summaryForStore,
-    session.lastPromptNumber,
-    result.createdAtEpoch,
-    discoveryTokens
-  ).then(() => {
-    const chromaDuration = Date.now() - chromaStart;
-    logger.debug('CHROMA', 'Summary synced', {
-      summaryId: result.summaryId,
-      duration: `${chromaDuration}ms`,
-      request: summaryForStore.request || '(no request)'
-    });
-  }).catch((error) => {
-    logger.error('CHROMA', `${agentName} chroma sync failed, continuing without vector search`, {
-      summaryId: result.summaryId,
-      request: summaryForStore.request || '(no request)'
-    }, error);
-  });
 
   // Broadcast to SSE clients (for web UI)
   broadcastSummary(worker, {
