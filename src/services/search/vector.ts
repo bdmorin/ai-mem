@@ -10,6 +10,13 @@ import type { SearchOptions, SearchResult } from './types';
 import { embed, deserializeEmbedding, cosineSimilarity } from './embeddings';
 
 /**
+ * Safety ceiling for vector search candidates.
+ * Each embedding is 1536 bytes (384 dims x 4 bytes).
+ * 10k observations = ~15MB, well within memory limits.
+ */
+const MAX_CANDIDATES = 10000;
+
+/**
  * Build WHERE clause for candidate selection.
  *
  * Note: This duplicates filter logic from fts5.ts:buildMetadataFilter intentionally.
@@ -85,6 +92,7 @@ export async function searchVector(db: Database, options: SearchOptions): Promis
     FROM observations o
     JOIN observation_embeddings e ON e.observation_id = o.id
     ${filter.clause}
+    LIMIT ${MAX_CANDIDATES}
   `;
 
   const rows = db.prepare(sql).all(...filter.params) as any[];
