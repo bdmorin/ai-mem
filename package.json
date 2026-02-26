@@ -41,6 +41,9 @@
     "dist",
     "plugin"
   ],
+  "bin": {
+    "aim": "./src/cli/aim.ts"
+  },
   "engines": {
     "node": ">=18.0.0",
     "bun": ">=1.0.0"
@@ -82,6 +85,7 @@
     "test:search": "bun test tests/worker/search/",
     "test:context": "bun test tests/context/",
     "test:infra": "bun test tests/infrastructure/",
+    "test:cli": "bun test tests/cli/",
     "test:server": "bun test tests/server/",
     "prepublishOnly": "npm run build",
     "release": "np",
