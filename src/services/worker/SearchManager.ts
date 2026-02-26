@@ -14,9 +14,9 @@
  */
 
 import { basename } from 'path';
+import type { Database } from 'bun:sqlite';
 import { SessionSearch } from '../sqlite/SessionSearch.js';
 import { SessionStore } from '../sqlite/SessionStore.js';
-import { ChromaSync } from '../sync/ChromaSync.js';
 import { FormattingService } from './FormattingService.js';
 import { TimelineService } from './TimelineService.js';
 import type { TimelineItem } from './TimelineService.js';
@@ -35,11 +35,13 @@ import type { TimelineData } from './search/index.js';
 export class SearchManager {
   private orchestrator: SearchOrchestrator;
   private timelineBuilder: TimelineBuilder;
+  // Chroma removed — field kept as null so all `if (this.chromaSync)` guards short-circuit
+  private chromaSync: null = null;
 
   constructor(
     private sessionSearch: SessionSearch,
     private sessionStore: SessionStore,
-    private chromaSync: ChromaSync | null,
+    private db: Database | null,
     private formatter: FormattingService,
     private timelineService: TimelineService
   ) {
@@ -47,7 +49,7 @@ export class SearchManager {
     this.orchestrator = new SearchOrchestrator(
       sessionSearch,
       sessionStore,
-      chromaSync
+      db
     );
     this.timelineBuilder = new TimelineBuilder();
   }
