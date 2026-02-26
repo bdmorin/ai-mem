@@ -60,17 +60,17 @@ describe('GeminiAgent', () => {
     // Mock SettingsDefaultsManager methods using spyOn (restores properly)
     loadFromFileSpy = spyOn(SettingsDefaultsManager, 'loadFromFile').mockImplementation(() => ({
       ...SettingsDefaultsManager.getAllDefaults(),
-      CLAUDE_MEM_GEMINI_API_KEY: 'test-api-key',
-      CLAUDE_MEM_GEMINI_MODEL: 'gemini-2.5-flash-lite',
-      CLAUDE_MEM_GEMINI_RATE_LIMITING_ENABLED: rateLimitingEnabled,
-      CLAUDE_MEM_DATA_DIR: '/tmp/claude-mem-test',
+      AI_MEM_GEMINI_API_KEY: 'test-api-key',
+      AI_MEM_GEMINI_MODEL: 'gemini-2.5-flash-lite',
+      AI_MEM_GEMINI_RATE_LIMITING_ENABLED: rateLimitingEnabled,
+      AI_MEM_DATA_DIR: '/tmp/ai-mem-test',
     }));
 
     getSpy = spyOn(SettingsDefaultsManager, 'get').mockImplementation((key: string) => {
-      if (key === 'CLAUDE_MEM_GEMINI_API_KEY') return 'test-api-key';
-      if (key === 'CLAUDE_MEM_GEMINI_MODEL') return 'gemini-2.5-flash-lite';
-      if (key === 'CLAUDE_MEM_GEMINI_RATE_LIMITING_ENABLED') return rateLimitingEnabled;
-      if (key === 'CLAUDE_MEM_DATA_DIR') return '/tmp/claude-mem-test';
+      if (key === 'AI_MEM_GEMINI_API_KEY') return 'test-api-key';
+      if (key === 'AI_MEM_GEMINI_MODEL') return 'gemini-2.5-flash-lite';
+      if (key === 'AI_MEM_GEMINI_RATE_LIMITING_ENABLED') return rateLimitingEnabled;
+      if (key === 'AI_MEM_DATA_DIR') return '/tmp/ai-mem-test';
       return SettingsDefaultsManager.getAllDefaults()[key as keyof ReturnType<typeof SettingsDefaultsManager.getAllDefaults>] ?? '';
     });
 
@@ -318,7 +318,7 @@ describe('GeminiAgent', () => {
 
   it('should respect rate limits when rate limiting enabled', async () => {
     // Enable rate limiting - this means requests will be throttled
-    // Note: CLAUDE_MEM_GEMINI_RATE_LIMITING_ENABLED !== 'false' means enabled
+    // Note: AI_MEM_GEMINI_RATE_LIMITING_ENABLED !== 'false' means enabled
     rateLimitingEnabled = 'true';
 
     const originalSetTimeout = global.setTimeout;

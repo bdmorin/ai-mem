@@ -2,7 +2,7 @@
  * Settings Routes
  *
  * Handles settings management, MCP toggle, and branch switching.
- * Settings are stored in ~/.claude-mem/settings.json
+ * Settings are stored in ~/.claude/ai-mem-data/settings.json
  */
 
 import express, { Request, Response } from 'express';
@@ -41,17 +41,17 @@ export class SettingsRoutes extends BaseRouteHandler {
   }
 
   /**
-   * Get environment settings (from ~/.claude-mem/settings.json)
+   * Get environment settings (from ~/.claude/ai-mem-data/settings.json)
    */
   private handleGetSettings = this.wrapHandler((req: Request, res: Response): void => {
-    const settingsPath = path.join(homedir(), '.claude-mem', 'settings.json');
+    const settingsPath = path.join(homedir(), '.claude', 'ai-mem-data', 'settings.json');
     this.ensureSettingsFile(settingsPath);
     const settings = SettingsDefaultsManager.loadFromFile(settingsPath);
     res.json(settings);
   });
 
   /**
-   * Update environment settings (in ~/.claude-mem/settings.json) with validation
+   * Update environment settings (in ~/.claude/ai-mem-data/settings.json) with validation
    */
   private handleUpdateSettings = this.wrapHandler((req: Request, res: Response): void => {
     // Validate all settings
@@ -65,7 +65,7 @@ export class SettingsRoutes extends BaseRouteHandler {
     }
 
     // Read existing settings
-    const settingsPath = path.join(homedir(), '.claude-mem', 'settings.json');
+    const settingsPath = path.join(homedir(), '.claude', 'ai-mem-data', 'settings.json');
     this.ensureSettingsFile(settingsPath);
     let settings: any = {};
 
@@ -77,7 +77,7 @@ export class SettingsRoutes extends BaseRouteHandler {
         logger.error('SETTINGS', 'Failed to parse settings file', { settingsPath }, parseError as Error);
         res.status(500).json({
           success: false,
-          error: 'Settings file is corrupted. Delete ~/.claude-mem/settings.json to reset.'
+          error: 'Settings file is corrupted. Delete ~/.claude/ai-mem-data/settings.json to reset.'
         });
         return;
       }
@@ -85,43 +85,43 @@ export class SettingsRoutes extends BaseRouteHandler {
 
     // Update all settings from request body
     const settingKeys = [
-      'CLAUDE_MEM_MODEL',
-      'CLAUDE_MEM_CONTEXT_OBSERVATIONS',
-      'CLAUDE_MEM_WORKER_PORT',
-      'CLAUDE_MEM_WORKER_HOST',
+      'AI_MEM_MODEL',
+      'AI_MEM_CONTEXT_OBSERVATIONS',
+      'AI_MEM_WORKER_PORT',
+      'AI_MEM_WORKER_HOST',
       // AI Provider Configuration
-      'CLAUDE_MEM_PROVIDER',
-      'CLAUDE_MEM_GEMINI_API_KEY',
-      'CLAUDE_MEM_GEMINI_MODEL',
-      'CLAUDE_MEM_GEMINI_RATE_LIMITING_ENABLED',
+      'AI_MEM_PROVIDER',
+      'AI_MEM_GEMINI_API_KEY',
+      'AI_MEM_GEMINI_MODEL',
+      'AI_MEM_GEMINI_RATE_LIMITING_ENABLED',
       // OpenRouter Configuration
-      'CLAUDE_MEM_OPENROUTER_API_KEY',
-      'CLAUDE_MEM_OPENROUTER_MODEL',
-      'CLAUDE_MEM_OPENROUTER_SITE_URL',
-      'CLAUDE_MEM_OPENROUTER_APP_NAME',
-      'CLAUDE_MEM_OPENROUTER_MAX_CONTEXT_MESSAGES',
-      'CLAUDE_MEM_OPENROUTER_MAX_TOKENS',
+      'AI_MEM_OPENROUTER_API_KEY',
+      'AI_MEM_OPENROUTER_MODEL',
+      'AI_MEM_OPENROUTER_SITE_URL',
+      'AI_MEM_OPENROUTER_APP_NAME',
+      'AI_MEM_OPENROUTER_MAX_CONTEXT_MESSAGES',
+      'AI_MEM_OPENROUTER_MAX_TOKENS',
       // System Configuration
-      'CLAUDE_MEM_DATA_DIR',
-      'CLAUDE_MEM_LOG_LEVEL',
-      'CLAUDE_MEM_PYTHON_VERSION',
+      'AI_MEM_DATA_DIR',
+      'AI_MEM_LOG_LEVEL',
+      'AI_MEM_PYTHON_VERSION',
       'CLAUDE_CODE_PATH',
       // Token Economics
-      'CLAUDE_MEM_CONTEXT_SHOW_READ_TOKENS',
-      'CLAUDE_MEM_CONTEXT_SHOW_WORK_TOKENS',
-      'CLAUDE_MEM_CONTEXT_SHOW_SAVINGS_AMOUNT',
-      'CLAUDE_MEM_CONTEXT_SHOW_SAVINGS_PERCENT',
+      'AI_MEM_CONTEXT_SHOW_READ_TOKENS',
+      'AI_MEM_CONTEXT_SHOW_WORK_TOKENS',
+      'AI_MEM_CONTEXT_SHOW_SAVINGS_AMOUNT',
+      'AI_MEM_CONTEXT_SHOW_SAVINGS_PERCENT',
       // Observation Filtering
-      'CLAUDE_MEM_CONTEXT_OBSERVATION_TYPES',
-      'CLAUDE_MEM_CONTEXT_OBSERVATION_CONCEPTS',
+      'AI_MEM_CONTEXT_OBSERVATION_TYPES',
+      'AI_MEM_CONTEXT_OBSERVATION_CONCEPTS',
       // Display Configuration
-      'CLAUDE_MEM_CONTEXT_FULL_COUNT',
-      'CLAUDE_MEM_CONTEXT_FULL_FIELD',
-      'CLAUDE_MEM_CONTEXT_SESSION_COUNT',
+      'AI_MEM_CONTEXT_FULL_COUNT',
+      'AI_MEM_CONTEXT_FULL_FIELD',
+      'AI_MEM_CONTEXT_SESSION_COUNT',
       // Feature Toggles
-      'CLAUDE_MEM_CONTEXT_SHOW_LAST_SUMMARY',
-      'CLAUDE_MEM_CONTEXT_SHOW_LAST_MESSAGE',
-      'CLAUDE_MEM_FOLDER_CLAUDEMD_ENABLED',
+      'AI_MEM_CONTEXT_SHOW_LAST_SUMMARY',
+      'AI_MEM_CONTEXT_SHOW_LAST_MESSAGE',
+      'AI_MEM_FOLDER_CLAUDEMD_ENABLED',
     ];
 
     for (const key of settingKeys) {
@@ -232,72 +232,72 @@ export class SettingsRoutes extends BaseRouteHandler {
    * Validate all settings from request body (single source of truth)
    */
   private validateSettings(settings: any): { valid: boolean; error?: string } {
-    // Validate CLAUDE_MEM_PROVIDER
-    if (settings.CLAUDE_MEM_PROVIDER) {
+    // Validate AI_MEM_PROVIDER
+    if (settings.AI_MEM_PROVIDER) {
     const validProviders = ['claude', 'gemini', 'openrouter'];
-    if (!validProviders.includes(settings.CLAUDE_MEM_PROVIDER)) {
-      return { valid: false, error: 'CLAUDE_MEM_PROVIDER must be "claude", "gemini", or "openrouter"' };
+    if (!validProviders.includes(settings.AI_MEM_PROVIDER)) {
+      return { valid: false, error: 'AI_MEM_PROVIDER must be "claude", "gemini", or "openrouter"' };
       }
     }
 
-    // Validate CLAUDE_MEM_GEMINI_MODEL
-    if (settings.CLAUDE_MEM_GEMINI_MODEL) {
+    // Validate AI_MEM_GEMINI_MODEL
+    if (settings.AI_MEM_GEMINI_MODEL) {
       const validGeminiModels = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-3-flash-preview'];
-      if (!validGeminiModels.includes(settings.CLAUDE_MEM_GEMINI_MODEL)) {
-        return { valid: false, error: 'CLAUDE_MEM_GEMINI_MODEL must be one of: gemini-2.5-flash-lite, gemini-2.5-flash, gemini-3-flash-preview' };
+      if (!validGeminiModels.includes(settings.AI_MEM_GEMINI_MODEL)) {
+        return { valid: false, error: 'AI_MEM_GEMINI_MODEL must be one of: gemini-2.5-flash-lite, gemini-2.5-flash, gemini-3-flash-preview' };
       }
     }
 
-    // Validate CLAUDE_MEM_CONTEXT_OBSERVATIONS
-    if (settings.CLAUDE_MEM_CONTEXT_OBSERVATIONS) {
-      const obsCount = parseInt(settings.CLAUDE_MEM_CONTEXT_OBSERVATIONS, 10);
+    // Validate AI_MEM_CONTEXT_OBSERVATIONS
+    if (settings.AI_MEM_CONTEXT_OBSERVATIONS) {
+      const obsCount = parseInt(settings.AI_MEM_CONTEXT_OBSERVATIONS, 10);
       if (isNaN(obsCount) || obsCount < 1 || obsCount > 200) {
-        return { valid: false, error: 'CLAUDE_MEM_CONTEXT_OBSERVATIONS must be between 1 and 200' };
+        return { valid: false, error: 'AI_MEM_CONTEXT_OBSERVATIONS must be between 1 and 200' };
       }
     }
 
-    // Validate CLAUDE_MEM_WORKER_PORT
-    if (settings.CLAUDE_MEM_WORKER_PORT) {
-      const port = parseInt(settings.CLAUDE_MEM_WORKER_PORT, 10);
+    // Validate AI_MEM_WORKER_PORT
+    if (settings.AI_MEM_WORKER_PORT) {
+      const port = parseInt(settings.AI_MEM_WORKER_PORT, 10);
       if (isNaN(port) || port < 1024 || port > 65535) {
-        return { valid: false, error: 'CLAUDE_MEM_WORKER_PORT must be between 1024 and 65535' };
+        return { valid: false, error: 'AI_MEM_WORKER_PORT must be between 1024 and 65535' };
       }
     }
 
-    // Validate CLAUDE_MEM_WORKER_HOST (IP address or 0.0.0.0)
-    if (settings.CLAUDE_MEM_WORKER_HOST) {
-      const host = settings.CLAUDE_MEM_WORKER_HOST;
+    // Validate AI_MEM_WORKER_HOST (IP address or 0.0.0.0)
+    if (settings.AI_MEM_WORKER_HOST) {
+      const host = settings.AI_MEM_WORKER_HOST;
       // Allow localhost variants and valid IP patterns
       const validHostPattern = /^(127\.0\.0\.1|0\.0\.0\.0|localhost|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/;
       if (!validHostPattern.test(host)) {
-        return { valid: false, error: 'CLAUDE_MEM_WORKER_HOST must be a valid IP address (e.g., 127.0.0.1, 0.0.0.0)' };
+        return { valid: false, error: 'AI_MEM_WORKER_HOST must be a valid IP address (e.g., 127.0.0.1, 0.0.0.0)' };
       }
     }
 
-    // Validate CLAUDE_MEM_LOG_LEVEL
-    if (settings.CLAUDE_MEM_LOG_LEVEL) {
+    // Validate AI_MEM_LOG_LEVEL
+    if (settings.AI_MEM_LOG_LEVEL) {
       const validLevels = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'SILENT'];
-      if (!validLevels.includes(settings.CLAUDE_MEM_LOG_LEVEL.toUpperCase())) {
-        return { valid: false, error: 'CLAUDE_MEM_LOG_LEVEL must be one of: DEBUG, INFO, WARN, ERROR, SILENT' };
+      if (!validLevels.includes(settings.AI_MEM_LOG_LEVEL.toUpperCase())) {
+        return { valid: false, error: 'AI_MEM_LOG_LEVEL must be one of: DEBUG, INFO, WARN, ERROR, SILENT' };
       }
     }
 
-    // Validate CLAUDE_MEM_PYTHON_VERSION (must be valid Python version format)
-    if (settings.CLAUDE_MEM_PYTHON_VERSION) {
+    // Validate AI_MEM_PYTHON_VERSION (must be valid Python version format)
+    if (settings.AI_MEM_PYTHON_VERSION) {
       const pythonVersionRegex = /^3\.\d{1,2}$/;
-      if (!pythonVersionRegex.test(settings.CLAUDE_MEM_PYTHON_VERSION)) {
-        return { valid: false, error: 'CLAUDE_MEM_PYTHON_VERSION must be in format "3.X" or "3.XX" (e.g., "3.13")' };
+      if (!pythonVersionRegex.test(settings.AI_MEM_PYTHON_VERSION)) {
+        return { valid: false, error: 'AI_MEM_PYTHON_VERSION must be in format "3.X" or "3.XX" (e.g., "3.13")' };
       }
     }
 
     // Validate boolean string values
     const booleanSettings = [
-      'CLAUDE_MEM_CONTEXT_SHOW_READ_TOKENS',
-      'CLAUDE_MEM_CONTEXT_SHOW_WORK_TOKENS',
-      'CLAUDE_MEM_CONTEXT_SHOW_SAVINGS_AMOUNT',
-      'CLAUDE_MEM_CONTEXT_SHOW_SAVINGS_PERCENT',
-      'CLAUDE_MEM_CONTEXT_SHOW_LAST_SUMMARY',
-      'CLAUDE_MEM_CONTEXT_SHOW_LAST_MESSAGE',
+      'AI_MEM_CONTEXT_SHOW_READ_TOKENS',
+      'AI_MEM_CONTEXT_SHOW_WORK_TOKENS',
+      'AI_MEM_CONTEXT_SHOW_SAVINGS_AMOUNT',
+      'AI_MEM_CONTEXT_SHOW_SAVINGS_PERCENT',
+      'AI_MEM_CONTEXT_SHOW_LAST_SUMMARY',
+      'AI_MEM_CONTEXT_SHOW_LAST_MESSAGE',
     ];
 
     for (const key of booleanSettings) {
@@ -307,52 +307,52 @@ export class SettingsRoutes extends BaseRouteHandler {
     }
 
     // Validate FULL_COUNT (0-20)
-    if (settings.CLAUDE_MEM_CONTEXT_FULL_COUNT) {
-      const count = parseInt(settings.CLAUDE_MEM_CONTEXT_FULL_COUNT, 10);
+    if (settings.AI_MEM_CONTEXT_FULL_COUNT) {
+      const count = parseInt(settings.AI_MEM_CONTEXT_FULL_COUNT, 10);
       if (isNaN(count) || count < 0 || count > 20) {
-        return { valid: false, error: 'CLAUDE_MEM_CONTEXT_FULL_COUNT must be between 0 and 20' };
+        return { valid: false, error: 'AI_MEM_CONTEXT_FULL_COUNT must be between 0 and 20' };
       }
     }
 
     // Validate SESSION_COUNT (1-50)
-    if (settings.CLAUDE_MEM_CONTEXT_SESSION_COUNT) {
-      const count = parseInt(settings.CLAUDE_MEM_CONTEXT_SESSION_COUNT, 10);
+    if (settings.AI_MEM_CONTEXT_SESSION_COUNT) {
+      const count = parseInt(settings.AI_MEM_CONTEXT_SESSION_COUNT, 10);
       if (isNaN(count) || count < 1 || count > 50) {
-        return { valid: false, error: 'CLAUDE_MEM_CONTEXT_SESSION_COUNT must be between 1 and 50' };
+        return { valid: false, error: 'AI_MEM_CONTEXT_SESSION_COUNT must be between 1 and 50' };
       }
     }
 
     // Validate FULL_FIELD
-    if (settings.CLAUDE_MEM_CONTEXT_FULL_FIELD) {
-      if (!['narrative', 'facts'].includes(settings.CLAUDE_MEM_CONTEXT_FULL_FIELD)) {
-        return { valid: false, error: 'CLAUDE_MEM_CONTEXT_FULL_FIELD must be "narrative" or "facts"' };
+    if (settings.AI_MEM_CONTEXT_FULL_FIELD) {
+      if (!['narrative', 'facts'].includes(settings.AI_MEM_CONTEXT_FULL_FIELD)) {
+        return { valid: false, error: 'AI_MEM_CONTEXT_FULL_FIELD must be "narrative" or "facts"' };
       }
     }
 
-    // Validate CLAUDE_MEM_OPENROUTER_MAX_CONTEXT_MESSAGES
-    if (settings.CLAUDE_MEM_OPENROUTER_MAX_CONTEXT_MESSAGES) {
-      const count = parseInt(settings.CLAUDE_MEM_OPENROUTER_MAX_CONTEXT_MESSAGES, 10);
+    // Validate AI_MEM_OPENROUTER_MAX_CONTEXT_MESSAGES
+    if (settings.AI_MEM_OPENROUTER_MAX_CONTEXT_MESSAGES) {
+      const count = parseInt(settings.AI_MEM_OPENROUTER_MAX_CONTEXT_MESSAGES, 10);
       if (isNaN(count) || count < 1 || count > 100) {
-        return { valid: false, error: 'CLAUDE_MEM_OPENROUTER_MAX_CONTEXT_MESSAGES must be between 1 and 100' };
+        return { valid: false, error: 'AI_MEM_OPENROUTER_MAX_CONTEXT_MESSAGES must be between 1 and 100' };
       }
     }
 
-    // Validate CLAUDE_MEM_OPENROUTER_MAX_TOKENS
-    if (settings.CLAUDE_MEM_OPENROUTER_MAX_TOKENS) {
-      const tokens = parseInt(settings.CLAUDE_MEM_OPENROUTER_MAX_TOKENS, 10);
+    // Validate AI_MEM_OPENROUTER_MAX_TOKENS
+    if (settings.AI_MEM_OPENROUTER_MAX_TOKENS) {
+      const tokens = parseInt(settings.AI_MEM_OPENROUTER_MAX_TOKENS, 10);
       if (isNaN(tokens) || tokens < 1000 || tokens > 1000000) {
-        return { valid: false, error: 'CLAUDE_MEM_OPENROUTER_MAX_TOKENS must be between 1000 and 1000000' };
+        return { valid: false, error: 'AI_MEM_OPENROUTER_MAX_TOKENS must be between 1000 and 1000000' };
       }
     }
 
-    // Validate CLAUDE_MEM_OPENROUTER_SITE_URL if provided
-    if (settings.CLAUDE_MEM_OPENROUTER_SITE_URL) {
+    // Validate AI_MEM_OPENROUTER_SITE_URL if provided
+    if (settings.AI_MEM_OPENROUTER_SITE_URL) {
       try {
-        new URL(settings.CLAUDE_MEM_OPENROUTER_SITE_URL);
+        new URL(settings.AI_MEM_OPENROUTER_SITE_URL);
       } catch (error) {
         // Invalid URL format
-        logger.debug('SETTINGS', 'Invalid URL format', { url: settings.CLAUDE_MEM_OPENROUTER_SITE_URL, error: error instanceof Error ? error.message : String(error) });
-        return { valid: false, error: 'CLAUDE_MEM_OPENROUTER_SITE_URL must be a valid URL' };
+        logger.debug('SETTINGS', 'Invalid URL format', { url: settings.AI_MEM_OPENROUTER_SITE_URL, error: error instanceof Error ? error.message : String(error) });
+        return { valid: false, error: 'AI_MEM_OPENROUTER_SITE_URL must be a valid URL' };
       }
     }
 

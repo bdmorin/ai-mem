@@ -19,7 +19,7 @@ import {
   type PidInfo
 } from '../../src/services/infrastructure/index.js';
 
-const DATA_DIR = path.join(homedir(), '.claude-mem');
+const DATA_DIR = path.join(homedir(), '.claude', 'ai-mem-data');
 const PID_FILE = path.join(DATA_DIR, 'worker.pid');
 
 describe('ProcessManager', () => {
@@ -474,7 +474,7 @@ describe('ProcessManager', () => {
     let testDataDir: string;
 
     beforeEach(() => {
-      testDataDir = path.join(tmpdir(), `claude-mem-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+      testDataDir = path.join(tmpdir(), `ai-mem-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
       mkdirSync(testDataDir, { recursive: true });
     });
 

@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
-import { ClaudeMemDatabase } from '../../../src/services/sqlite/Database.js';
+import { AiMemDatabase } from '../../../src/services/sqlite/Database.js';
 import { PendingMessageStore } from '../../../src/services/sqlite/PendingMessageStore.js';
 import { createSDKSession } from '../../../src/services/sqlite/Sessions.js';
 import type { PendingMessage } from '../../../src/services/worker-types.js';
@@ -12,7 +12,7 @@ describe('PendingMessageStore - Self-Healing claimNextMessage', () => {
   const CONTENT_SESSION_ID = 'test-self-heal';
 
   beforeEach(() => {
-    db = new ClaudeMemDatabase(':memory:').db;
+    db = new AiMemDatabase(':memory:').db;
     store = new PendingMessageStore(db, 3);
     sessionDbId = createSDKSession(db, CONTENT_SESSION_ID, 'test-project', 'Test prompt');
   });

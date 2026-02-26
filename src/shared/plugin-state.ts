@@ -7,10 +7,10 @@ import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 
-const PLUGIN_SETTINGS_KEY = 'claude-mem@thedotmack';
+const PLUGIN_SETTINGS_KEY = 'ai-mem@bdmorin';
 
 /**
- * Check if claude-mem is disabled in Claude Code's settings (#781).
+ * Check if ai-mem is disabled in Claude Code's settings (#781).
  * Sync read + JSON parse for speed — called before any async work.
  * Returns true only if the plugin is explicitly disabled (enabledPlugins[key] === false).
  */

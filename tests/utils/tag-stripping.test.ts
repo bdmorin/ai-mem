@@ -1,7 +1,7 @@
 /**
  * Tag Stripping Utility Tests
  *
- * Tests the dual-tag privacy system for <private> and <claude-mem-context> tags.
+ * Tests the dual-tag privacy system for <private> and <ai-mem-context> tags.
  * These tags enable users and the system to exclude content from memory storage.
  *
  * Sources:
@@ -38,14 +38,14 @@ describe('Tag Stripping Utilities', () => {
         expect(result).toBe('public content  more public');
       });
 
-      it('should strip single <claude-mem-context> tag', () => {
-        const input = 'public content <claude-mem-context>injected context</claude-mem-context> more public';
+      it('should strip single <ai-mem-context> tag', () => {
+        const input = 'public content <ai-mem-context>injected context</ai-mem-context> more public';
         const result = stripMemoryTagsFromPrompt(input);
         expect(result).toBe('public content  more public');
       });
 
       it('should strip both tag types in mixed content', () => {
-        const input = '<private>secret</private> public <claude-mem-context>context</claude-mem-context> end';
+        const input = '<private>secret</private> public <ai-mem-context>context</ai-mem-context> end';
         const result = stripMemoryTagsFromPrompt(input);
         expect(result).toBe('public  end');
       });
@@ -58,8 +58,8 @@ describe('Tag Stripping Utilities', () => {
         expect(result).toBe('middle  end');
       });
 
-      it('should strip multiple <claude-mem-context> blocks', () => {
-        const input = '<claude-mem-context>ctx1</claude-mem-context><claude-mem-context>ctx2</claude-mem-context> content';
+      it('should strip multiple <ai-mem-context> blocks', () => {
+        const input = '<ai-mem-context>ctx1</ai-mem-context><ai-mem-context>ctx2</ai-mem-context> content';
         const result = stripMemoryTagsFromPrompt(input);
         expect(result).toBe('content');
       });
@@ -67,13 +67,13 @@ describe('Tag Stripping Utilities', () => {
       it('should handle many interleaved tags', () => {
         let input = 'start';
         for (let i = 0; i < 10; i++) {
-          input += ` <private>p${i}</private> <claude-mem-context>c${i}</claude-mem-context>`;
+          input += ` <private>p${i}</private> <ai-mem-context>c${i}</ai-mem-context>`;
         }
         input += ' end';
         const result = stripMemoryTagsFromPrompt(input);
         // Tags are stripped but spaces between them remain
         expect(result).not.toContain('<private>');
-        expect(result).not.toContain('<claude-mem-context>');
+        expect(result).not.toContain('<ai-mem-context>');
         expect(result).toContain('start');
         expect(result).toContain('end');
       });
@@ -87,7 +87,7 @@ describe('Tag Stripping Utilities', () => {
       });
 
       it('should return empty string for entirely context-tagged prompt', () => {
-        const input = '<claude-mem-context>all is context</claude-mem-context>';
+        const input = '<ai-mem-context>all is context</ai-mem-context>';
         const result = stripMemoryTagsFromPrompt(input);
         expect(result).toBe('');
       });
@@ -104,7 +104,7 @@ describe('Tag Stripping Utilities', () => {
       });
 
       it('should handle whitespace-only after stripping', () => {
-        const input = '<private>content</private>   <claude-mem-context>more</claude-mem-context>';
+        const input = '<private>content</private>   <ai-mem-context>more</ai-mem-context>';
         const result = stripMemoryTagsFromPrompt(input);
         expect(result).toBe('');
       });
@@ -143,13 +143,13 @@ end`;
         expect(result).toBe('public\n\nend');
       });
 
-      it('should strip multiline content within <claude-mem-context> tags', () => {
+      it('should strip multiline content within <ai-mem-context> tags', () => {
         const input = `start
-<claude-mem-context>
+<ai-mem-context>
 # Recent Activity
 - Item 1
 - Item 2
-</claude-mem-context>
+</ai-mem-context>
 finish`;
         const result = stripMemoryTagsFromPrompt(input);
         expect(result).toBe('start\n\nfinish');
@@ -202,9 +202,9 @@ finish`;
         expect(parsed.content).toBe(' public');
       });
 
-      it('should strip claude-mem-context tags from JSON', () => {
+      it('should strip ai-mem-context tags from JSON', () => {
         const jsonContent = JSON.stringify({
-          data: '<claude-mem-context>injected</claude-mem-context> real data'
+          data: '<ai-mem-context>injected</ai-mem-context> real data'
         });
         const result = stripMemoryTagsFromJson(jsonContent);
         const parsed = JSON.parse(result);
@@ -223,7 +223,7 @@ finish`;
 
       it('should handle tool_response with tags', () => {
         const toolResponse = {
-          output: 'result <claude-mem-context>context data</claude-mem-context>',
+          output: 'result <ai-mem-context>context data</ai-mem-context>',
           status: 'success'
         };
         const result = stripMemoryTagsFromJson(JSON.stringify(toolResponse));

@@ -488,11 +488,11 @@ describe('MarkdownFormatter', () => {
       expect(joined).toContain('500');
     });
 
-    it('should mention claude-mem skill', () => {
+    it('should mention ai-mem skill', () => {
       const result = renderMarkdownFooter(5000, 100);
       const joined = result.join('\n');
 
-      expect(joined).toContain('claude-mem');
+      expect(joined).toContain('ai-mem');
     });
 
     it('should round work tokens to nearest thousand', () => {

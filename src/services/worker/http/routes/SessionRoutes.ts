@@ -57,7 +57,7 @@ export class SessionRoutes extends BaseRouteHandler {
         logger.debug('SESSION', 'Using OpenRouter agent');
         return this.openRouterAgent;
       } else {
-        throw new Error('OpenRouter provider selected but no API key configured. Set CLAUDE_MEM_OPENROUTER_API_KEY in settings or OPENROUTER_API_KEY environment variable.');
+        throw new Error('OpenRouter provider selected but no API key configured. Set AI_MEM_OPENROUTER_API_KEY in settings or OPENROUTER_API_KEY environment variable.');
       }
     }
     if (isGeminiSelected()) {
@@ -65,7 +65,7 @@ export class SessionRoutes extends BaseRouteHandler {
         logger.debug('SESSION', 'Using Gemini agent');
         return this.geminiAgent;
       } else {
-        throw new Error('Gemini provider selected but no API key configured. Set CLAUDE_MEM_GEMINI_API_KEY in settings or GEMINI_API_KEY environment variable.');
+        throw new Error('Gemini provider selected but no API key configured. Set AI_MEM_GEMINI_API_KEY in settings or GEMINI_API_KEY environment variable.');
       }
     }
     return this.sdkAgent;
@@ -504,7 +504,7 @@ export class SessionRoutes extends BaseRouteHandler {
 
     // Load skip tools from settings
     const settings = SettingsDefaultsManager.loadFromFile(USER_SETTINGS_PATH);
-    const skipTools = new Set(settings.CLAUDE_MEM_SKIP_TOOLS.split(',').map(t => t.trim()).filter(Boolean));
+    const skipTools = new Set(settings.AI_MEM_SKIP_TOOLS.split(',').map(t => t.trim()).filter(Boolean));
 
     // Skip low-value or meta tools
     if (skipTools.has(tool_name)) {

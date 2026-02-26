@@ -5,7 +5,6 @@
  * Delegates to specialized modules:
  * - src/services/server/ - HTTP server, middleware, error handling
  * - src/services/infrastructure/ - Process management, health monitoring, shutdown
- * - src/services/integrations/ - IDE integrations (Cursor)
  * - src/services/worker/ - Business logic, routes, agents
  */
 
@@ -25,7 +24,7 @@ import { ChromaSync } from './sync/ChromaSync.js';
 const WINDOWS_SPAWN_COOLDOWN_MS = 2 * 60 * 1000;
 
 function getWorkerSpawnLockPath(): string {
-  return path.join(SettingsDefaultsManager.get('CLAUDE_MEM_DATA_DIR'), '.worker-start-attempted');
+  return path.join(SettingsDefaultsManager.get('AI_MEM_DATA_DIR'), '.worker-start-attempted');
 }
 
 function shouldSkipSpawnOnWindows(): boolean {
@@ -94,12 +93,6 @@ import { performGracefulShutdown } from './infrastructure/GracefulShutdown.js';
 
 // Server imports
 import { Server } from './server/Server.js';
-
-// Integration imports
-import {
-  updateCursorContextForProject,
-  handleCursorCommand
-} from './integrations/CursorHooksInstaller.js';
 
 // Service layer imports
 import { DatabaseManager } from './worker/DatabaseManager.js';
@@ -341,7 +334,7 @@ export class WorkerService {
     this.server.registerRoutes(new DataRoutes(this.paginationHelper, this.dbManager, this.sessionManager, this.sseBroadcaster, this, this.startTime));
     this.server.registerRoutes(new SettingsRoutes(this.settingsManager));
     this.server.registerRoutes(new LogsRoutes());
-    this.server.registerRoutes(new MemoryRoutes(this.dbManager, 'claude-mem'));
+    this.server.registerRoutes(new MemoryRoutes(this.dbManager, 'ai-mem'));
   }
 
   /**
@@ -387,20 +380,20 @@ export class WorkerService {
 
       // One-time chroma wipe for users upgrading from versions with duplicate worker bugs.
       // Only runs in local mode (chroma is local-only). Backfill at line ~414 rebuilds from SQLite.
-      if (settings.CLAUDE_MEM_MODE === 'local' || !settings.CLAUDE_MEM_MODE) {
+      if (settings.AI_MEM_MODE === 'local' || !settings.AI_MEM_MODE) {
         runOneTimeChromaMigration();
       }
 
       // Initialize ChromaMcpManager only if Chroma is enabled
-      const chromaEnabled = settings.CLAUDE_MEM_CHROMA_ENABLED !== 'false';
+      const chromaEnabled = settings.AI_MEM_CHROMA_ENABLED !== 'false';
       if (chromaEnabled) {
         this.chromaMcpManager = ChromaMcpManager.getInstance();
         logger.info('SYSTEM', 'ChromaMcpManager initialized (lazy - connects on first use)');
       } else {
-        logger.info('SYSTEM', 'Chroma disabled via CLAUDE_MEM_CHROMA_ENABLED=false, skipping ChromaMcpManager');
+        logger.info('SYSTEM', 'Chroma disabled via AI_MEM_CHROMA_ENABLED=false, skipping ChromaMcpManager');
       }
 
-      const modeId = settings.CLAUDE_MEM_MODE;
+      const modeId = settings.AI_MEM_MODE;
       ModeManager.getInstance().loadMode(modeId);
       logger.info('SYSTEM', `Mode loaded: ${modeId}`);
 
@@ -1094,13 +1087,6 @@ async function main() {
       break;
     }
 
-    case 'cursor': {
-      const subcommand = process.argv[3];
-      const cursorResult = await handleCursorCommand(subcommand, process.argv.slice(4));
-      process.exit(cursorResult);
-      break;
-    }
-
     case 'hook': {
       // Auto-start worker if not running
       const workerReady = await ensureWorkerStarted(port);
@@ -1112,8 +1098,8 @@ async function main() {
       const platform = process.argv[3];
       const event = process.argv[4];
       if (!platform || !event) {
-        console.error('Usage: claude-mem hook <platform> <event>');
-        console.error('Platforms: claude-code, cursor, raw');
+        console.error('Usage: ai-mem hook <platform> <event>');
+        console.error('Platforms: claude-code, raw');
         console.error('Events: context, session-init, observation, summarize, session-complete');
         process.exit(1);
       }

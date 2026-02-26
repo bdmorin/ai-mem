@@ -28,18 +28,18 @@ const project = basename(cwd);
 
 try {
   // Resolve data directory: env var → settings.json → default
-  let dataDir = process.env.CLAUDE_MEM_DATA_DIR || join(homedir(), ".claude-mem");
-  if (!process.env.CLAUDE_MEM_DATA_DIR) {
+  let dataDir = process.env.AI_MEM_DATA_DIR || join(homedir(), ".claude", "ai-mem-data");
+  if (!process.env.AI_MEM_DATA_DIR) {
     const settingsPath = join(dataDir, "settings.json");
     if (existsSync(settingsPath)) {
       try {
         const settings = JSON.parse(readFileSync(settingsPath, "utf-8"));
-        if (settings.CLAUDE_MEM_DATA_DIR) dataDir = settings.CLAUDE_MEM_DATA_DIR;
+        if (settings.AI_MEM_DATA_DIR) dataDir = settings.AI_MEM_DATA_DIR;
       } catch { /* use default */ }
     }
   }
 
-  const dbPath = join(dataDir, "claude-mem.db");
+  const dbPath = join(dataDir, "ai-mem.db");
   if (!existsSync(dbPath)) {
     console.log(JSON.stringify({ observations: 0, prompts: 0, project }));
     process.exit(0);

@@ -2,7 +2,7 @@
 /**
  * Export memories matching a search query to a portable JSON format
  * Usage: npx tsx scripts/export-memories.ts <query> <output-file> [--project=name]
- * Example: npx tsx scripts/export-memories.ts "windows" windows-memories.json --project=claude-mem
+ * Example: npx tsx scripts/export-memories.ts "windows" windows-memories.json --project=ai-mem
  */
 
 import { writeFileSync } from 'fs';
@@ -20,8 +20,8 @@ import type {
 async function exportMemories(query: string, outputFile: string, project?: string) {
   try {
     // Read port from settings
-    const settings = SettingsDefaultsManager.loadFromFile(join(homedir(), '.claude-mem', 'settings.json'));
-    const port = parseInt(settings.CLAUDE_MEM_WORKER_PORT, 10);
+    const settings = SettingsDefaultsManager.loadFromFile(join(homedir(), '.claude', 'ai-mem-data', 'settings.json'));
+    const port = parseInt(settings.AI_MEM_WORKER_PORT, 10);
     const baseUrl = `http://localhost:${port}`;
 
     console.log(`🔍 Searching for: "${query}"${project ? ` (project: ${project})` : ' (all projects)'}`);
@@ -113,7 +113,7 @@ async function exportMemories(query: string, outputFile: string, project?: strin
 const args = process.argv.slice(2);
 if (args.length < 2) {
   console.error('Usage: npx tsx scripts/export-memories.ts <query> <output-file> [--project=name]');
-  console.error('Example: npx tsx scripts/export-memories.ts "windows" windows-memories.json --project=claude-mem');
+  console.error('Example: npx tsx scripts/export-memories.ts "windows" windows-memories.json --project=ai-mem');
   console.error('         npx tsx scripts/export-memories.ts "authentication" auth.json');
   process.exit(1);
 }

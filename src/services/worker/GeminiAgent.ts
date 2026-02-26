@@ -134,7 +134,7 @@ export class GeminiAgent {
       const { apiKey, model, rateLimitingEnabled } = this.getGeminiConfig();
 
       if (!apiKey) {
-        throw new Error('Gemini API key not configured. Set CLAUDE_MEM_GEMINI_API_KEY in settings or GEMINI_API_KEY environment variable.');
+        throw new Error('Gemini API key not configured. Set AI_MEM_GEMINI_API_KEY in settings or GEMINI_API_KEY environment variable.');
       }
 
       // Generate synthetic memorySessionId (Gemini is stateless, doesn't return session IDs)
@@ -410,19 +410,19 @@ export class GeminiAgent {
 
   /**
    * Get Gemini configuration from settings or environment
-   * Issue #733: Uses centralized ~/.claude-mem/.env for credentials, not random project .env files
+   * Issue #733: Uses centralized ~/.claude/ai-mem-data/.env for credentials, not random project .env files
    */
   private getGeminiConfig(): { apiKey: string; model: GeminiModel; rateLimitingEnabled: boolean } {
-    const settingsPath = path.join(homedir(), '.claude-mem', 'settings.json');
+    const settingsPath = path.join(homedir(), '.claude', 'ai-mem-data', 'settings.json');
     const settings = SettingsDefaultsManager.loadFromFile(settingsPath);
 
-    // API key: check settings first, then centralized claude-mem .env (NOT process.env)
+    // API key: check settings first, then centralized ai-mem .env (NOT process.env)
     // This prevents Issue #733 where random project .env files could interfere
-    const apiKey = settings.CLAUDE_MEM_GEMINI_API_KEY || getCredential('GEMINI_API_KEY') || '';
+    const apiKey = settings.AI_MEM_GEMINI_API_KEY || getCredential('GEMINI_API_KEY') || '';
 
     // Model: from settings or default, with validation
     const defaultModel: GeminiModel = 'gemini-2.5-flash';
-    const configuredModel = settings.CLAUDE_MEM_GEMINI_MODEL || defaultModel;
+    const configuredModel = settings.AI_MEM_GEMINI_MODEL || defaultModel;
     const validModels: GeminiModel[] = [
       'gemini-2.5-flash-lite',
       'gemini-2.5-flash',
@@ -445,7 +445,7 @@ export class GeminiAgent {
     }
 
     // Rate limiting: enabled by default for free tier users
-    const rateLimitingEnabled = settings.CLAUDE_MEM_GEMINI_RATE_LIMITING_ENABLED !== 'false';
+    const rateLimitingEnabled = settings.AI_MEM_GEMINI_RATE_LIMITING_ENABLED !== 'false';
 
     return { apiKey, model, rateLimitingEnabled };
   }
@@ -453,19 +453,19 @@ export class GeminiAgent {
 
 /**
  * Check if Gemini is available (has API key configured)
- * Issue #733: Uses centralized ~/.claude-mem/.env, not random project .env files
+ * Issue #733: Uses centralized ~/.claude/ai-mem-data/.env, not random project .env files
  */
 export function isGeminiAvailable(): boolean {
-  const settingsPath = path.join(homedir(), '.claude-mem', 'settings.json');
+  const settingsPath = path.join(homedir(), '.claude', 'ai-mem-data', 'settings.json');
   const settings = SettingsDefaultsManager.loadFromFile(settingsPath);
-  return !!(settings.CLAUDE_MEM_GEMINI_API_KEY || getCredential('GEMINI_API_KEY'));
+  return !!(settings.AI_MEM_GEMINI_API_KEY || getCredential('GEMINI_API_KEY'));
 }
 
 /**
  * Check if Gemini is the selected provider
  */
 export function isGeminiSelected(): boolean {
-  const settingsPath = path.join(homedir(), '.claude-mem', 'settings.json');
+  const settingsPath = path.join(homedir(), '.claude', 'ai-mem-data', 'settings.json');
   const settings = SettingsDefaultsManager.loadFromFile(settingsPath);
-  return settings.CLAUDE_MEM_PROVIDER === 'gemini';
+  return settings.AI_MEM_PROVIDER === 'gemini';
 }

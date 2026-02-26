@@ -128,7 +128,7 @@ Examples:
   bun scripts/check-pending-queue.ts --process --limit 5
 
 What is this for?
-  If the claude-mem worker crashes or restarts, pending observations may
+  If the ai-mem worker crashes or restarts, pending observations may
   be left unprocessed. This script shows the backlog and lets you trigger
   processing. The worker no longer auto-recovers on startup to give you
   control over when processing happens.
@@ -146,7 +146,7 @@ What is this for?
   const healthy = await checkWorkerHealth();
   if (!healthy) {
     console.log('Worker is not running. Start it with:');
-    console.log('  cd ~/.claude/plugins/marketplaces/thedotmack && npm run worker:start\n');
+    console.log('  cd ~/.claude/plugins/marketplaces/bdmorin && npm run worker:start\n');
     process.exit(1);
   }
   console.log('Worker status: Running\n');

@@ -53,9 +53,9 @@ describe('Version Consistency', () => {
     expect(marketplaceJson.plugins).toBeDefined();
     expect(marketplaceJson.plugins.length).toBeGreaterThan(0);
     
-    const claudeMemPlugin = marketplaceJson.plugins.find((p: any) => p.name === 'claude-mem');
-    expect(claudeMemPlugin).toBeDefined();
-    expect(claudeMemPlugin.version).toBe(rootVersion);
+    const aiMemPlugin = marketplaceJson.plugins.find((p: any) => p.name === 'ai-mem');
+    expect(aiMemPlugin).toBeDefined();
+    expect(aiMemPlugin.version).toBe(rootVersion);
   });
 
   it('should have version injected into built worker-service.cjs', () => {

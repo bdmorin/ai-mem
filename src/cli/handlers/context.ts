@@ -34,7 +34,7 @@ export const contextHandler: EventHandler = {
 
     // Check if terminal output should be shown (load settings early)
     const settings = SettingsDefaultsManager.loadFromFile(USER_SETTINGS_PATH);
-    const showTerminalOutput = settings.CLAUDE_MEM_CONTEXT_SHOW_TERMINAL_OUTPUT === 'true';
+    const showTerminalOutput = settings.AI_MEM_CONTEXT_SHOW_TERMINAL_OUTPUT === 'true';
 
     // Pass all projects (parent + worktree if applicable) for unified timeline
     const projectsParam = context.allProjects.join(',');

@@ -19,11 +19,11 @@ import { HOOK_TIMEOUTS } from '../../shared/hook-constants.js';
 const execAsync = promisify(exec);
 
 // Standard paths for PID file management
-const DATA_DIR = path.join(homedir(), '.claude-mem');
+const DATA_DIR = path.join(homedir(), '.claude', 'ai-mem-data');
 const PID_FILE = path.join(DATA_DIR, 'worker.pid');
 
 // Orphaned process cleanup patterns and thresholds
-// These are claude-mem processes that can accumulate if not properly terminated
+// These are ai-mem processes that can accumulate if not properly terminated
 const ORPHAN_PROCESS_PATTERNS = [
   'mcp-server.cjs',    // Main MCP server process
   'worker-service.cjs', // Background worker daemon
@@ -300,7 +300,7 @@ export function parseElapsedTime(etime: string): number {
 }
 
 /**
- * Clean up orphaned claude-mem processes from previous worker sessions
+ * Clean up orphaned ai-mem processes from previous worker sessions
  *
  * Targets mcp-server.cjs, worker-service.cjs, and chroma-mcp processes
  * that survived a previous daemon crash. Only kills processes older than
@@ -326,7 +326,7 @@ export async function cleanupOrphanedProcesses(): Promise<void> {
       const { stdout } = await execAsync(cmd, { timeout: HOOK_TIMEOUTS.POWERSHELL_COMMAND, windowsHide: true });
 
       if (!stdout.trim() || stdout.trim() === 'null') {
-        logger.debug('SYSTEM', 'No orphaned claude-mem processes found (Windows)');
+        logger.debug('SYSTEM', 'No orphaned ai-mem processes found (Windows)');
         return;
       }
 
@@ -359,7 +359,7 @@ export async function cleanupOrphanedProcesses(): Promise<void> {
       );
 
       if (!stdout.trim()) {
-        logger.debug('SYSTEM', 'No orphaned claude-mem processes found (Unix)');
+        logger.debug('SYSTEM', 'No orphaned ai-mem processes found (Unix)');
         return;
       }
 
@@ -392,7 +392,7 @@ export async function cleanupOrphanedProcesses(): Promise<void> {
     return;
   }
 
-  logger.info('SYSTEM', 'Cleaning up orphaned claude-mem processes', {
+  logger.info('SYSTEM', 'Cleaning up orphaned ai-mem processes', {
     platform: isWindows ? 'Windows' : 'Unix',
     count: pidsToKill.length,
     pids: pidsToKill,
@@ -436,7 +436,7 @@ const AGGRESSIVE_CLEANUP_PATTERNS = ['worker-service.cjs', 'chroma-mcp'];
 const AGE_GATED_CLEANUP_PATTERNS = ['mcp-server.cjs'];
 
 /**
- * Aggressive startup cleanup for orphaned claude-mem processes.
+ * Aggressive startup cleanup for orphaned ai-mem processes.
  *
  * Unlike cleanupOrphanedProcesses() which age-gates everything at 30 minutes,
  * this function kills worker-service.cjs and chroma-mcp processes immediately
@@ -463,7 +463,7 @@ export async function aggressiveStartupCleanup(): Promise<void> {
       const { stdout } = await execAsync(cmd, { timeout: HOOK_TIMEOUTS.POWERSHELL_COMMAND, windowsHide: true });
 
       if (!stdout.trim() || stdout.trim() === 'null') {
-        logger.debug('SYSTEM', 'No orphaned claude-mem processes found (Windows)');
+        logger.debug('SYSTEM', 'No orphaned ai-mem processes found (Windows)');
         return;
       }
 
@@ -503,7 +503,7 @@ export async function aggressiveStartupCleanup(): Promise<void> {
       );
 
       if (!stdout.trim()) {
-        logger.debug('SYSTEM', 'No orphaned claude-mem processes found (Unix)');
+        logger.debug('SYSTEM', 'No orphaned ai-mem processes found (Unix)');
         return;
       }
 
@@ -578,7 +578,7 @@ const CHROMA_MIGRATION_MARKER_FILENAME = '.chroma-cleaned-v10.3';
  * worker bugs that could corrupt chroma data. Since chroma is always rebuildable
  * from SQLite (via backfillAllProjects), this is safe.
  *
- * Checks for a marker file. If absent, wipes ~/.claude-mem/chroma/ and writes
+ * Checks for a marker file. If absent, wipes ~/.claude/ai-mem-data/chroma/ and writes
  * the marker. If present, skips. Idempotent.
  *
  * @param dataDirectory - Override for DATA_DIR (used in tests)
@@ -627,7 +627,7 @@ export function spawnDaemon(
   const isWindows = process.platform === 'win32';
   const env = {
     ...process.env,
-    CLAUDE_MEM_WORKER_PORT: String(port),
+    AI_MEM_WORKER_PORT: String(port),
     ...extraEnv
   };
 

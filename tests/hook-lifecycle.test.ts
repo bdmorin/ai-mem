@@ -18,7 +18,7 @@ describe('Hook Lifecycle - Event Handlers', () => {
       const { getEventHandler } = await import('../src/cli/handlers/index.js');
       const recognizedTypes = [
         'context', 'session-init', 'observation',
-        'summarize', 'session-complete', 'user-message', 'file-edit'
+        'summarize', 'session-complete', 'user-message'
       ];
       for (const type of recognizedTypes) {
         const handler = getEventHandler(type);
@@ -133,126 +133,6 @@ describe('Codex CLI Compatibility (#744)', () => {
   });
 });
 
-// --- Cursor IDE Compatibility Tests (#838, #1049) ---
-
-describe('Cursor IDE Compatibility (#838, #1049)', () => {
-  describe('cursorAdapter session ID fallbacks', () => {
-    it('should use conversation_id when present', async () => {
-      const { cursorAdapter } = await import('../src/cli/adapters/cursor.js');
-      const input = cursorAdapter.normalizeInput({ conversation_id: 'conv-123', workspace_roots: ['/project'] });
-      expect(input.sessionId).toBe('conv-123');
-    });
-
-    it('should fall back to generation_id', async () => {
-      const { cursorAdapter } = await import('../src/cli/adapters/cursor.js');
-      const input = cursorAdapter.normalizeInput({ generation_id: 'gen-456', workspace_roots: ['/project'] });
-      expect(input.sessionId).toBe('gen-456');
-    });
-
-    it('should fall back to id field', async () => {
-      const { cursorAdapter } = await import('../src/cli/adapters/cursor.js');
-      const input = cursorAdapter.normalizeInput({ id: 'id-789', workspace_roots: ['/project'] });
-      expect(input.sessionId).toBe('id-789');
-    });
-
-    it('should return undefined when no session ID field is present', async () => {
-      const { cursorAdapter } = await import('../src/cli/adapters/cursor.js');
-      const input = cursorAdapter.normalizeInput({ workspace_roots: ['/project'] });
-      expect(input.sessionId).toBeUndefined();
-    });
-  });
-
-  describe('cursorAdapter prompt field fallbacks', () => {
-    it('should use prompt when present', async () => {
-      const { cursorAdapter } = await import('../src/cli/adapters/cursor.js');
-      const input = cursorAdapter.normalizeInput({ conversation_id: 'c1', prompt: 'fix the bug' });
-      expect(input.prompt).toBe('fix the bug');
-    });
-
-    it('should fall back to query field', async () => {
-      const { cursorAdapter } = await import('../src/cli/adapters/cursor.js');
-      const input = cursorAdapter.normalizeInput({ conversation_id: 'c1', query: 'search for files' });
-      expect(input.prompt).toBe('search for files');
-    });
-
-    it('should fall back to input field', async () => {
-      const { cursorAdapter } = await import('../src/cli/adapters/cursor.js');
-      const input = cursorAdapter.normalizeInput({ conversation_id: 'c1', input: 'user typed this' });
-      expect(input.prompt).toBe('user typed this');
-    });
-
-    it('should fall back to message field', async () => {
-      const { cursorAdapter } = await import('../src/cli/adapters/cursor.js');
-      const input = cursorAdapter.normalizeInput({ conversation_id: 'c1', message: 'hello cursor' });
-      expect(input.prompt).toBe('hello cursor');
-    });
-
-    it('should return undefined when no prompt field is present', async () => {
-      const { cursorAdapter } = await import('../src/cli/adapters/cursor.js');
-      const input = cursorAdapter.normalizeInput({ conversation_id: 'c1' });
-      expect(input.prompt).toBeUndefined();
-    });
-
-    it('should prefer prompt over query', async () => {
-      const { cursorAdapter } = await import('../src/cli/adapters/cursor.js');
-      const input = cursorAdapter.normalizeInput({ conversation_id: 'c1', prompt: 'primary', query: 'secondary' });
-      expect(input.prompt).toBe('primary');
-    });
-  });
-
-  describe('cursorAdapter cwd fallbacks', () => {
-    it('should use workspace_roots[0] when present', async () => {
-      const { cursorAdapter } = await import('../src/cli/adapters/cursor.js');
-      const input = cursorAdapter.normalizeInput({ conversation_id: 'c1', workspace_roots: ['/my/project'] });
-      expect(input.cwd).toBe('/my/project');
-    });
-
-    it('should fall back to cwd field', async () => {
-      const { cursorAdapter } = await import('../src/cli/adapters/cursor.js');
-      const input = cursorAdapter.normalizeInput({ conversation_id: 'c1', cwd: '/fallback/dir' });
-      expect(input.cwd).toBe('/fallback/dir');
-    });
-
-    it('should fall back to process.cwd() when nothing provided', async () => {
-      const { cursorAdapter } = await import('../src/cli/adapters/cursor.js');
-      const input = cursorAdapter.normalizeInput({ conversation_id: 'c1' });
-      expect(input.cwd).toBe(process.cwd());
-    });
-  });
-
-  describe('cursorAdapter undefined input handling', () => {
-    it('should handle undefined input gracefully', async () => {
-      const { cursorAdapter } = await import('../src/cli/adapters/cursor.js');
-      const input = cursorAdapter.normalizeInput(undefined);
-      expect(input.sessionId).toBeUndefined();
-      expect(input.prompt).toBeUndefined();
-      expect(input.cwd).toBe(process.cwd());
-    });
-
-    it('should handle null input gracefully', async () => {
-      const { cursorAdapter } = await import('../src/cli/adapters/cursor.js');
-      const input = cursorAdapter.normalizeInput(null);
-      expect(input.sessionId).toBeUndefined();
-      expect(input.prompt).toBeUndefined();
-      expect(input.cwd).toBe(process.cwd());
-    });
-  });
-
-  describe('cursorAdapter formatOutput', () => {
-    it('should return simple continue flag', async () => {
-      const { cursorAdapter } = await import('../src/cli/adapters/cursor.js');
-      const output = cursorAdapter.formatOutput({ continue: true, suppressOutput: true });
-      expect(output).toEqual({ continue: true });
-    });
-
-    it('should default continue to true', async () => {
-      const { cursorAdapter } = await import('../src/cli/adapters/cursor.js');
-      const output = cursorAdapter.formatOutput({});
-      expect(output).toEqual({ continue: true });
-    });
-  });
-});
-
 // --- Platform Adapter Tests ---
 
 describe('Hook Lifecycle - Claude Code Adapter', () => {
@@ -328,7 +208,7 @@ describe('Hook Lifecycle - stderr Suppression (#1181)', () => {
     // No stderr output should have leaked from the handler dispatcher itself
     // (logger may write to stderr as fallback if log file unavailable, but that's
     // the logger's responsibility, not the dispatcher's)
-    const dispatcherStderr = stderrOutput.filter(s => s.includes('[claude-mem] Unknown event'));
+    const dispatcherStderr = stderrOutput.filter(s => s.includes('[ai-mem] Unknown event'));
     expect(dispatcherStderr).toHaveLength(0);
   });
 });
@@ -368,7 +248,7 @@ describe('hookCommand - stderr suppression', () => {
     // Should restore stderr in finally block
     expect(hookCommandSource).toContain("process.stderr.write = originalStderrWrite");
     // Should NOT have console.error for error reporting
-    expect(hookCommandSource).not.toContain("console.error(`[claude-mem]");
+    expect(hookCommandSource).not.toContain("console.error(`[ai-mem]");
     expect(hookCommandSource).not.toContain("console.error(`Hook error:");
   });
 });

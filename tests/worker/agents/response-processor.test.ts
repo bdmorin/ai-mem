@@ -3,10 +3,6 @@ import { logger } from '../../../src/utils/logger.js';
 
 // Mock modules that cause import chain issues - MUST be before imports
 // Use full paths from test file location
-mock.module('../../../src/services/worker-service.js', () => ({
-  updateCursorContextForProject: () => Promise.resolve(),
-}));
-
 mock.module('../../../src/shared/worker-utils.js', () => ({
   getWorkerPort: () => 37777,
 }));

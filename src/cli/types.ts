@@ -1,15 +1,12 @@
 export interface NormalizedHookInput {
   sessionId: string;
   cwd: string;
-  platform?: string;   // 'claude-code' or 'cursor'
+  platform?: string;   // 'claude-code' or 'raw'
   prompt?: string;
   toolName?: string;
   toolInput?: unknown;
   toolResponse?: unknown;
   transcriptPath?: string;
-  // Cursor-specific fields
-  filePath?: string;   // afterFileEdit
-  edits?: unknown[];   // afterFileEdit
 }
 
 export interface HookResult {

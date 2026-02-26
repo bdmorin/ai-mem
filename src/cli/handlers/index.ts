@@ -12,7 +12,6 @@ import { sessionInitHandler } from './session-init.js';
 import { observationHandler } from './observation.js';
 import { summarizeHandler } from './summarize.js';
 import { userMessageHandler } from './user-message.js';
-import { fileEditHandler } from './file-edit.js';
 import { sessionCompleteHandler } from './session-complete.js';
 
 export type EventType =
@@ -21,8 +20,7 @@ export type EventType =
   | 'observation'       // PostToolUse - save observation
   | 'summarize'         // Stop - generate summary (phase 1)
   | 'session-complete'  // Stop - complete session (phase 2) - fixes #842
-  | 'user-message'      // SessionStart (parallel) - display to user
-  | 'file-edit';        // Cursor afterFileEdit
+  | 'user-message';     // SessionStart (parallel) - display to user
 
 const handlers: Record<EventType, EventHandler> = {
   'context': contextHandler,
@@ -30,8 +28,7 @@ const handlers: Record<EventType, EventHandler> = {
   'observation': observationHandler,
   'summarize': summarizeHandler,
   'session-complete': sessionCompleteHandler,
-  'user-message': userMessageHandler,
-  'file-edit': fileEditHandler
+  'user-message': userMessageHandler
 };
 
 /**
@@ -63,5 +60,4 @@ export { sessionInitHandler } from './session-init.js';
 export { observationHandler } from './observation.js';
 export { summarizeHandler } from './summarize.js';
 export { userMessageHandler } from './user-message.js';
-export { fileEditHandler } from './file-edit.js';
 export { sessionCompleteHandler } from './session-complete.js';

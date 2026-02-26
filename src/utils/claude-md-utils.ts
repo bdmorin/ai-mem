@@ -3,7 +3,7 @@
  *
  * Shared utilities for writing folder-level CLAUDE.md files with
  * auto-generated context sections. Preserves user content outside
- * <claude-mem-context> tags.
+ * <ai-mem-context> tags.
  */
 
 import { existsSync, readFileSync, writeFileSync, renameSync } from 'fs';
@@ -14,7 +14,7 @@ import { formatDate, groupByDate } from '../shared/timeline-formatting.js';
 import { SettingsDefaultsManager } from '../shared/SettingsDefaultsManager.js';
 import { getWorkerHost } from '../shared/worker-utils.js';
 
-const SETTINGS_PATH = path.join(os.homedir(), '.claude-mem', 'settings.json');
+const SETTINGS_PATH = path.join(os.homedir(), '.claude', 'ai-mem-data', 'settings.json');
 
 /**
  * Check for consecutive duplicate path segments like frontend/frontend/ or src/src/.
@@ -83,8 +83,8 @@ function isValidPathForClaudeMd(filePath: string, projectRoot?: string): boolean
  * 3. No tags in existing content → appends tagged content at end
  */
 export function replaceTaggedContent(existingContent: string, newContent: string): string {
-  const startTag = '<claude-mem-context>';
-  const endTag = '</claude-mem-context>';
+  const startTag = '<ai-mem-context>';
+  const endTag = '</ai-mem-context>';
 
   // If no existing content, wrap new content in tags
   if (!existingContent) {
@@ -331,22 +331,22 @@ export async function updateFolderClaudeMdFiles(
 ): Promise<void> {
   // Load settings to get configurable observation limit and exclude list
   const settings = SettingsDefaultsManager.loadFromFile(SETTINGS_PATH);
-  const limit = parseInt(settings.CLAUDE_MEM_CONTEXT_OBSERVATIONS, 10) || 50;
+  const limit = parseInt(settings.AI_MEM_CONTEXT_OBSERVATIONS, 10) || 50;
 
   // Parse exclude paths from settings
   let folderMdExcludePaths: string[] = [];
   try {
-    const parsed = JSON.parse(settings.CLAUDE_MEM_FOLDER_MD_EXCLUDE || '[]');
+    const parsed = JSON.parse(settings.AI_MEM_FOLDER_MD_EXCLUDE || '[]');
     if (Array.isArray(parsed)) {
       folderMdExcludePaths = parsed.filter((p): p is string => typeof p === 'string');
     }
   } catch {
-    logger.warn('FOLDER_INDEX', 'Failed to parse CLAUDE_MEM_FOLDER_MD_EXCLUDE setting');
+    logger.warn('FOLDER_INDEX', 'Failed to parse AI_MEM_FOLDER_MD_EXCLUDE setting');
   }
 
   // Track folders containing CLAUDE.md files that were read/modified in this observation.
   // We must NOT update these - it would cause "file modified since read" errors in Claude Code.
-  // See: https://github.com/thedotmack/claude-mem/issues/859
+  // See: https://github.com/bdmorin/ai-mem/issues/859
   const foldersWithActiveClaudeMd = new Set<string>();
 
   // First pass: identify folders with actively-used CLAUDE.md files

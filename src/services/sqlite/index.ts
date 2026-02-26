@@ -1,6 +1,6 @@
 // Export main components
 export {
-  ClaudeMemDatabase,
+  AiMemDatabase,
   DatabaseManager,
   getDatabase,
   initializeDatabase,

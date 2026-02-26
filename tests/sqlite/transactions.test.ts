@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { ClaudeMemDatabase } from '../../src/services/sqlite/Database.js';
+import { AiMemDatabase } from '../../src/services/sqlite/Database.js';
 import {
   storeObservations,
   storeObservationsAndMarkComplete,
@@ -27,7 +27,7 @@ describe('Transactions Module', () => {
   let db: Database;
 
   beforeEach(() => {
-    db = new ClaudeMemDatabase(':memory:').db;
+    db = new AiMemDatabase(':memory:').db;
   });
 
   afterEach(() => {

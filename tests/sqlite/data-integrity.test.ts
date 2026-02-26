@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { ClaudeMemDatabase } from '../../src/services/sqlite/Database.js';
+import { AiMemDatabase } from '../../src/services/sqlite/Database.js';
 import {
   storeObservation,
   computeObservationContentHash,
@@ -43,7 +43,7 @@ describe('TRIAGE-03: Data Integrity', () => {
   let db: Database;
 
   beforeEach(() => {
-    db = new ClaudeMemDatabase(':memory:').db;
+    db = new AiMemDatabase(':memory:').db;
   });
 
   afterEach(() => {

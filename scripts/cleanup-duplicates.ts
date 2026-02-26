@@ -22,7 +22,7 @@ import { Database } from 'bun:sqlite';
 import { homedir } from 'os';
 import { join } from 'path';
 
-const DB_PATH = join(homedir(), '.claude-mem', 'claude-mem.db');
+const DB_PATH = join(homedir(), '.claude', 'ai-mem-data', 'ai-mem.db');
 
 // Time window modes for duplicate detection
 const TIME_WINDOW_MODES = {

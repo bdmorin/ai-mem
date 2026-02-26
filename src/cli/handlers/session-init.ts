@@ -32,7 +32,7 @@ export const sessionInitHandler: EventHandler = {
 
     // Check if project is excluded from tracking
     const settings = SettingsDefaultsManager.loadFromFile(USER_SETTINGS_PATH);
-    if (cwd && isProjectExcluded(cwd, settings.CLAUDE_MEM_EXCLUDED_PROJECTS)) {
+    if (cwd && isProjectExcluded(cwd, settings.AI_MEM_EXCLUDED_PROJECTS)) {
       logger.info('HOOK', 'Project excluded from tracking', { cwd });
       return { continue: true, suppressOutput: true };
     }
@@ -97,9 +97,7 @@ export const sessionInitHandler: EventHandler = {
       return { continue: true, suppressOutput: true };
     }
 
-    // Only initialize SDK agent for Claude Code (not Cursor)
-    // Cursor doesn't use the SDK agent - it only needs session/observation storage
-    if (input.platform !== 'cursor' && sessionDbId) {
+    if (sessionDbId) {
       // Strip leading slash from commands for memory agent
       // /review 101 -> review 101 (more semantic for observations)
       const cleanedPrompt = prompt.startsWith('/') ? prompt.substring(1) : prompt;
@@ -118,8 +116,6 @@ export const sessionInitHandler: EventHandler = {
         // Log but don't throw - SDK agent failure should not block the user's prompt
         logger.failure('HOOK', `SDK agent start failed: ${response.status}`, { sessionDbId, promptNumber });
       }
-    } else if (input.platform === 'cursor') {
-      logger.debug('HOOK', 'session-init: Skipping SDK agent init for Cursor platform', { sessionDbId, promptNumber });
     }
 
     logger.info('HOOK', `INIT_COMPLETE | sessionDbId=${sessionDbId} | promptNumber=${promptNumber} | project=${project}`, {

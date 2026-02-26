@@ -16,11 +16,11 @@ import { join } from 'path';
 mock.module('../../src/shared/SettingsDefaultsManager.js', () => ({
   SettingsDefaultsManager: {
     get: (key: string) => {
-      if (key === 'CLAUDE_MEM_DATA_DIR') return join(homedir(), '.claude-mem');
+      if (key === 'AI_MEM_DATA_DIR') return join(homedir(), '.claude', 'ai-mem-data');
       return '';
     },
     getInt: () => 0,
-    loadFromFile: () => ({ CLAUDE_MEM_EXCLUDED_PROJECTS: [] }),
+    loadFromFile: () => ({ AI_MEM_EXCLUDED_PROJECTS: [] }),
   },
 }));
 

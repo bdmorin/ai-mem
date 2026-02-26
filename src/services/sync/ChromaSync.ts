@@ -769,15 +769,15 @@ export class ChromaSync {
 
   /**
    * Backfill all projects that have observations in SQLite but may be missing from Chroma.
-   * Uses a single shared ChromaSync('claude-mem') instance and Chroma connection.
+   * Uses a single shared ChromaSync('ai-mem') instance and Chroma connection.
    * Per-project scoping is passed as a parameter to ensureBackfilled(), avoiding
-   * instance state mutation. All documents land in the cm__claude-mem collection
+   * instance state mutation. All documents land in the cm__ai-mem collection
    * with project scoped via metadata, matching how DatabaseManager and SearchManager operate.
    * Designed to be called fire-and-forget on worker startup.
    */
   static async backfillAllProjects(): Promise<void> {
     const db = new SessionStore();
-    const sync = new ChromaSync('claude-mem');
+    const sync = new ChromaSync('ai-mem');
     try {
       const projects = db.db.prepare(
         'SELECT DISTINCT project FROM observations WHERE project IS NOT NULL AND project != ?'
