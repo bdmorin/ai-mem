@@ -276,6 +276,42 @@ describe('MigrationRunner', () => {
     });
   });
 
+  describe('migration 24: observation_embeddings and embedding_metadata', () => {
+    it('creates observation_embeddings table', () => {
+      const runner = new MigrationRunner(db);
+      runner.runAllMigrations();
+
+      const tables = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='observation_embeddings'").all();
+      expect(tables.length).toBe(1);
+
+      const cols = db.query('PRAGMA table_info(observation_embeddings)').all() as any[];
+      const colNames = cols.map((c: any) => c.name);
+      expect(colNames).toContain('observation_id');
+      expect(colNames).toContain('embedding');
+      expect(colNames).toContain('model');
+      expect(colNames).toContain('created_at_epoch');
+    });
+
+    it('creates embedding_metadata table', () => {
+      const runner = new MigrationRunner(db);
+      runner.runAllMigrations();
+
+      const tables = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='embedding_metadata'").all();
+      expect(tables.length).toBe(1);
+
+      const cols = db.query('PRAGMA table_info(embedding_metadata)').all() as any[];
+      const colNames = cols.map((c: any) => c.name);
+      expect(colNames).toContain('key');
+      expect(colNames).toContain('value');
+    });
+
+    it('migration is idempotent', () => {
+      const runner = new MigrationRunner(db);
+      runner.runAllMigrations();
+      runner.runAllMigrations(); // second run should not throw
+    });
+  });
+
   describe('data integrity during migration', () => {
     it('should preserve existing data through all migrations', () => {
       const runner = new MigrationRunner(db);

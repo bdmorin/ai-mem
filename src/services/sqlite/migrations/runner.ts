@@ -34,6 +34,7 @@ export class MigrationRunner {
     this.addOnUpdateCascadeToForeignKeys();
     this.addObservationContentHashColumn();
     this.addSessionCustomTitleColumn();
+    this.createEmbeddingTables();
   }
 
   /**
@@ -858,5 +859,40 @@ export class MigrationRunner {
     }
 
     this.db.prepare('INSERT OR IGNORE INTO schema_versions (version, applied_at) VALUES (?, ?)').run(23, new Date().toISOString());
+  }
+
+  /**
+   * Create embedding tables for SQLite-native vector search (migration 24)
+   */
+  private createEmbeddingTables(): void {
+    const applied = this.db.prepare('SELECT version FROM schema_versions WHERE version = ?').get(24) as SchemaVersion | undefined;
+    if (applied) return;
+
+    const tables = this.db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='observation_embeddings'").all() as TableNameRow[];
+    if (tables.length > 0) {
+      this.db.prepare('INSERT OR IGNORE INTO schema_versions (version, applied_at) VALUES (?, ?)').run(24, new Date().toISOString());
+      return;
+    }
+
+    logger.debug('DB', 'Creating embedding tables for SQLite-native search');
+
+    this.db.run(`
+      CREATE TABLE observation_embeddings (
+        observation_id INTEGER PRIMARY KEY REFERENCES observations(id) ON DELETE CASCADE,
+        embedding BLOB NOT NULL,
+        model TEXT NOT NULL DEFAULT 'all-MiniLM-L6-v2',
+        created_at_epoch INTEGER NOT NULL
+      )
+    `);
+
+    this.db.run(`
+      CREATE TABLE embedding_metadata (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      )
+    `);
+
+    this.db.prepare('INSERT OR IGNORE INTO schema_versions (version, applied_at) VALUES (?, ?)').run(24, new Date().toISOString());
+    logger.debug('DB', 'Embedding tables created successfully');
   }
 }
