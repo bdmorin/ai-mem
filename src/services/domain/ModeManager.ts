@@ -2,8 +2,8 @@
  * ModeManager - Singleton for loading and managing mode profiles
  *
  * Mode profiles define observation types, concepts, and prompts for different use cases.
- * Default mode is 'code' (software development). Other modes like 'email-investigation'
- * can be selected via AI_MEM_MODE setting.
+ * Currently only ships with 'code' mode (software development).
+ * Additional modes can be added as JSON files in plugin/modes/.
  */
 
 import { readFileSync, existsSync } from 'fs';
