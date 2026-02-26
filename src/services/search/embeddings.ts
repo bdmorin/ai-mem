@@ -26,12 +26,17 @@ export async function getEmbedder(model: string = DEFAULT_MODEL): Promise<Featur
   if (_pipelinePromise) return _pipelinePromise;
 
   _pipelinePromise = (async () => {
-    const { pipeline } = await import('@huggingface/transformers');
-    const extractor = await pipeline('feature-extraction', model, {
-      dtype: 'fp32',
-    });
-    _pipeline = extractor as FeatureExtractionPipeline;
-    return _pipeline;
+    try {
+      const { pipeline } = await import('@huggingface/transformers');
+      const extractor = await pipeline('feature-extraction', model, {
+        dtype: 'fp32',
+      });
+      _pipeline = extractor as FeatureExtractionPipeline;
+      return _pipeline;
+    } catch (err) {
+      _pipelinePromise = null;
+      throw err;
+    }
   })();
 
   return _pipelinePromise;
