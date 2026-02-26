@@ -15,9 +15,7 @@ export type { TimelineItem, TimelineData } from './TimelineBuilder.js';
 // Strategies
 export type { SearchStrategy } from './strategies/SearchStrategy.js';
 export { BaseSearchStrategy } from './strategies/SearchStrategy.js';
-export { ChromaSearchStrategy } from './strategies/ChromaSearchStrategy.js';
 export { SQLiteSearchStrategy } from './strategies/SQLiteSearchStrategy.js';
-export { HybridSearchStrategy } from './strategies/HybridSearchStrategy.js';
 
 // Filters
 export * from './filters/DateFilter.js';
