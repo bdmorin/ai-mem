@@ -101,12 +101,22 @@ export interface SearchResponse {
 /**
  * Format search results as a terminal table
  *
+ * The search API returns MCP content blocks: {content: [{type: "text", text: "..."}]}
+ * When we get that format, just print the text directly (it's already formatted markdown).
+ * For structured JSON responses, format as a table.
+ *
  * Columns: [ID, Date, Type, Title, Project]
  */
-export function formatSearchResults(data: SearchResponse): string {
-  const observations = data.observations || data.results || [];
+export function formatSearchResults(data: SearchResponse | { content?: Array<{ type: string; text: string }> }): string {
+  // Handle MCP content block format from search API
+  if ('content' in data && Array.isArray(data.content)) {
+    const text = data.content.map((block: { type: string; text: string }) => block.text || '').join('\n');
+    return text || c(ANSI.yellow, 'No results found.');
+  }
 
-  if (observations.length === 0 && !data.sessions?.length && !data.prompts?.length) {
+  const observations = (data as SearchResponse).observations || (data as SearchResponse).results || [];
+
+  if (observations.length === 0 && !(data as SearchResponse).sessions?.length && !(data as SearchResponse).prompts?.length) {
     return c(ANSI.yellow, 'No results found.');
   }
 
@@ -195,8 +205,14 @@ export interface TimelineResponse {
 /**
  * Format timeline as date-grouped list with observation summaries
  */
-export function formatTimeline(data: TimelineResponse): string {
-  const items = data.timeline || data.items || [];
+export function formatTimeline(data: TimelineResponse | { content?: Array<{ type: string; text: string }> }): string {
+  // Handle MCP content block format
+  if ('content' in data && Array.isArray(data.content)) {
+    const text = data.content.map((block: { type: string; text: string }) => block.text || '').join('\n');
+    return text || c(ANSI.yellow, 'No timeline data.');
+  }
+
+  const items = (data as TimelineResponse).timeline || (data as TimelineResponse).items || [];
 
   if (items.length === 0) {
     return c(ANSI.yellow, 'No timeline data.');
