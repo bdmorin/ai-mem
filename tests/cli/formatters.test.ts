@@ -222,7 +222,7 @@ describe('formatStatus', () => {
           sessions: 150,
           summaries: 145,
           size: 2 * 1024 * 1024, // 2 MB
-          path: '/home/user/.claude-mem/claude-mem.db',
+          path: '/home/user/.claude/ai-mem-data/ai-mem.db',
         },
       }
     );
